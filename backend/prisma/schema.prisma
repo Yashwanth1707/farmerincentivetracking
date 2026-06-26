@@ -1,0 +1,322 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Roles ────────────────────────────────────────────────────────────────────
+enum UserRole {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+// ── Users ────────────────────────────────────────────────────────────────────
+model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  username         String   @unique
+  email            String   @unique
+  passwordHash     String   @map("password_hash")
+  fullName         String   @map("full_name")
+  phone            String?
+  role             UserRole @default(OPERATOR)
+  isActive         Boolean  @default(true) @map("is_active")
+  lastLoginAt      DateTime? @map("last_login_at")
+  passwordChangedAt DateTime? @map("password_changed_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdFarmers     Farmer[]              @relation("farmer_creator")
+  updatedFarmers     Farmer[]              @relation("farmer_updater")
+  createdFinancialYr FinancialYear[]       @relation("fy_creator")
+  updatedFinancialYr FinancialYear[]       @relation("fy_updater")
+  processedPayments  PaymentBatch[]        @relation("batch_processor")
+  approvedBatches    PaymentBatch[]        @relation("batch_approver")
+  auditLogs          AuditLog[]
+  passwordResets     PasswordReset[]
+  smsLogs            SmsLog[]
+  sentSmsRecords     SentSmsRecord[]
+
+  @@map("users")
+}
+
+// ── Farmers ──────────────────────────────────────────────────────────────────
+model Farmer {
+  id             String   @id @default(uuid()) @db.Uuid
+  farmerId       String   @unique @map("farmer_id")
+  aadharNumber   String?  @unique @map("aadhar_number")
+  name           String
+  fatherName     String?  @map("father_name")
+  village        String
+  district       String
+  state          String   @default("Telangana")
+  pincode        String?
+  phone          String?
+  bankName       String?  @map("bank_name")
+  branchName     String?  @map("branch_name")
+  accountNumber  String?  @map("account_number")
+  ifscCode       String?  @map("ifsc_code")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String   @map("created_by") @db.Uuid
+  updatedBy      String   @map("updated_by") @db.Uuid
+
+  // Relations
+  payments       Payment[]
+  batchDetails   BatchDetail[]
+  tdsRecords     TdsRecord[]
+  createdByUser  User     @relation("farmer_creator", fields: [createdBy], references: [id])
+  updatedByUser  User     @relation("farmer_updater", fields: [updatedBy], references: [id])
+
+  @@index([village, district])
+  @@index([name])
+  @@map("farmers")
+}
+
+// ── Financial Years ──────────────────────────────────────────────────────────
+model FinancialYear {
+  id        String   @id @default(uuid()) @db.Uuid
+  yearLabel String   @unique @map("year_label") // e.g., "2024-2025"
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  isActive  Boolean  @default(true) @map("is_active")
+  isClosed  Boolean  @default(false) @map("is_closed")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String   @map("created_by") @db.Uuid
+  updatedBy String   @map("updated_by") @db.Uuid
+
+  // Relations
+  paymentBatches PaymentBatch[]
+  createdByUser  User          @relation("fy_creator", fields: [createdBy], references: [id])
+  updatedByUser  User          @relation("fy_updater", fields: [updatedBy], references: [id])
+
+  @@map("financial_years")
+}
+
+// ── Payments (individual incentive records) ──────────────────────────────────
+model Payment {
+  id                  String   @id @default(uuid()) @db.Uuid
+  farmerId            String   @map("farmer_id") @db.Uuid
+  financialYearId     String   @map("financial_year_id") @db.Uuid
+  invoiceNumber       String?  @map("invoice_number")
+  grossAmount         Decimal  @map("gross_amount") @db.Decimal(12, 2)
+  tdsAmount           Decimal  @default(0) @map("tds_amount") @db.Decimal(12, 2)
+  netAmount           Decimal  @map("net_amount") @db.Decimal(12, 2)
+  tdsApplicable       Boolean  @default(false) @map("tds_applicable")
+  tdsPercentage       Decimal? @map("tds_percentage") @db.Decimal(5, 2)
+  paymentDate         DateTime? @map("payment_date")
+  notes               String?
+  isTdsDecisionPending Boolean @default(false) @map("is_tds_decision_pending")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  farmer              Farmer       @relation(fields: [farmerId], references: [id])
+  financialYear       FinancialYear @relation(fields: [financialYearId], references: [id])
+  batchDetails        BatchDetail[]
+
+  @@index([farmerId, financialYearId])
+  @@map("payments")
+}
+
+// ── Payment Batches ──────────────────────────────────────────────────────────
+enum BatchStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model PaymentBatch {
+  id               String      @id @default(uuid()) @db.Uuid
+  batchNumber      String      @unique @map("batch_number")
+  financialYearId  String      @map("financial_year_id") @db.Uuid
+  totalFarmers     Int         @default(0) @map("total_farmers")
+  totalGrossAmount Decimal     @default(0) @map("total_gross_amount") @db.Decimal(14, 2)
+  totalTdsAmount   Decimal     @default(0) @map("total_tds_amount") @db.Decimal(14, 2)
+  totalNetAmount   Decimal     @default(0) @map("total_net_amount") @db.Decimal(14, 2)
+  status           BatchStatus @default(DRAFT)
+  processedBy      String      @map("processed_by") @db.Uuid
+  approvedBy       String?     @map("approved_by") @db.Uuid
+  approvedAt       DateTime?   @map("approved_at")
+  rejectedReason   String?     @map("rejected_reason")
+  paymentDate      DateTime?   @map("payment_date")
+  notes            String?
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  financialYear  FinancialYear @relation(fields: [financialYearId], references: [id])
+  processedByUser User         @relation("batch_processor", fields: [processedBy], references: [id])
+  approvedByUser User?         @relation("batch_approver", fields: [approvedBy], references: [id])
+  batchDetails   BatchDetail[]
+
+  @@index([financialYearId])
+  @@index([status])
+  @@map("payment_batches")
+}
+
+// ── Batch Details (junction between batch and payment) ──────────────────────
+model BatchDetail {
+  id             String @id @default(uuid()) @db.Uuid
+  batchId        String @map("batch_id") @db.Uuid
+  paymentId      String @map("payment_id") @db.Uuid
+  farmerId       String @map("farmer_id") @db.Uuid
+
+  // Relations
+  batch          PaymentBatch @relation(fields: [batchId], references: [id])
+  payment        Payment      @relation(fields: [paymentId], references: [id])
+  farmer         Farmer       @relation(fields: [farmerId], references: [id])
+
+  @@unique([batchId, paymentId])
+  @@index([batchId])
+  @@index([farmerId])
+  @@map("batch_details")
+}
+
+// ── TDS History ──────────────────────────────────────────────────────────────
+enum TdsDecision {
+  YES
+  NO
+}
+
+model TdsRecord {
+  id              String      @id @default(uuid()) @db.Uuid
+  farmerId        String      @map("farmer_id") @db.Uuid
+  financialYearId String      @map("financial_year_id") @db.Uuid
+  cumulativeAmount Decimal    @map("cumulative_amount") @db.Decimal(12, 2)
+  decision        TdsDecision?
+  decidedBy       String?     @map("decided_by") @db.Uuid
+  decidedAt       DateTime?   @map("decided_at")
+  notes           String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  farmer         Farmer       @relation(fields: [farmerId], references: [id])
+  financialYear  FinancialYear @relation(fields: [financialYearId], references: [id])
+
+  @@index([farmerId, financialYearId])
+  @@map("tds_records")
+}
+
+// ── SMS Templates ────────────────────────────────────────────────────────────
+model SmsTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  body      String   // Supports variables: {{FarmerName}}, {{FarmerID}}, {{Amount}}, {{Village}}, {{PaymentDate}}, {{ReferenceNumber}}
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sentSmsRecords SentSmsRecord[]
+
+  @@map("sms_templates")
+}
+
+// ── SMS Logs / Sent SMS Records ──────────────────────────────────────────────
+enum SmsStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+}
+
+model SmsLog {
+  id        String    @id @default(uuid()) @db.Uuid
+  sentById  String    @map("sent_by_id") @db.Uuid
+  batchId   String?   @map("batch_id") @db.Uuid
+  farmerId  String?   @map("farmer_id") @db.Uuid
+  templateId String?  @map("template_id") @db.Uuid
+  recipient String
+  message   String
+  status    SmsStatus @default(QUEUED)
+  twilioSid String?   @map("twilio_sid")
+  errorMsg  String?   @map("error_msg")
+  sentAt    DateTime? @map("sent_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  sentBy  User         @relation(fields: [sentById], references: [id])
+
+  @@index([status])
+  @@index([sentAt])
+  @@map("sms_logs")
+}
+
+// Separate SMS sent record linking to template
+model SentSmsRecord {
+  id         String    @id @default(uuid()) @db.Uuid
+  templateId String    @map("template_id") @db.Uuid
+  farmerId   String?   @map("farmer_id") @db.Uuid
+  recipient  String
+  message    String
+  status     SmsStatus @default(QUEUED)
+  sentById   String    @map("sent_by_id") @db.Uuid
+  sentAt     DateTime  @default(now()) @map("sent_at")
+
+  template SmsTemplate @relation(fields: [templateId], references: [id])
+  sentBy   User        @relation("sms_sender", fields: [sentById], references: [id])
+
+  @@map("sent_sms_records")
+}
+
+// ── Audit Logs ────────────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  action    String   // e.g., LOGIN, LOGOUT, CREATE_FARMER, UPDATE_FARMER, DELETE_FARMER, UPLOAD_PAYMENT, APPROVE_BATCH, SEND_SMS, etc.
+  entity    String?  // e.g., "farmer", "user", "payment_batch", "payment"
+  entityId  String?  @map("entity_id")
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     String   // JSON string for complex values
+  category  String   @default("general") // general, tds, sms, email, payment
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+// ── Password Resets ──────────────────────────────────────────────────────────
+model PasswordReset {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
