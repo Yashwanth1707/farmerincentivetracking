@@ -9,8 +9,5 @@
     "frontend:dev": "cd frontend && flutter run -d web-server --web-port 3000",
     "build": "npm --prefix backend run build && cd frontend && flutter build web --release",
     "start": "npm --prefix backend run start"
-  },
-  "dependencies": {
-    "flutter": "^0.0.5"
   }
 }
