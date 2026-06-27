@@ -36,6 +36,8 @@ export const config = {
 
   // App
   appUrl: process.env.APP_URL || 'http://localhost:3000',
+  corsOrigin: process.env.CORS_ORIGIN || process.env.APP_URL || 'http://localhost:3000',
+  isVercel: process.env.VERCEL === '1' || process.env.VERCEL === 'true',
 
   // Rate Limiting
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),

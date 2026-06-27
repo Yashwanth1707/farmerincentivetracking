@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
 import fs from 'fs';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
@@ -76,7 +75,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(cors({
-  origin: config.isDev ? true : config.appUrl,
+  origin: config.isDev ? true : config.corsOrigin,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -117,7 +116,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: config.isProd,
+    secure: config.isProd || config.isVercel,
     sameSite: 'lax',
     maxAge: config.sessionExpiryHours * 60 * 60 * 1000, // 24 hours default
   },
@@ -159,11 +158,20 @@ app.use(errorHandler);
 
 // ── Start Server ──────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.port, () => {
-    logger.info(`FIMS Backend server running on port ${config.port}`);
-    logger.info(`API Documentation: http://localhost:${config.port}/api/docs`);
-    logger.info(`Environment: ${config.nodeEnv}`);
-  });
+  const port = config.port;
+  const startServer = () => {
+    app.listen(port, () => {
+      logger.info(`FIMS Backend server running on port ${port}`);
+      logger.info(`API Documentation: http://localhost:${port}/api/docs`);
+      logger.info(`Environment: ${config.nodeEnv}`);
+    });
+  };
+
+  if (process.env.VERCEL) {
+    logger.info('Running in Vercel-compatible mode');
+  } else {
+    startServer();
+  }
 }
 
 export default app;
