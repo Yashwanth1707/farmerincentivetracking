@@ -92,6 +92,13 @@ export class UserService {
     const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
     if (existingEmail) throw new ConflictError('Email already exists');
 
+    if (data.role === 'ADMIN') {
+      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+      if (adminCount > 0) {
+        throw new ValidationError({ role: ['Only one admin user is allowed'] });
+      }
+    }
+
     const passwordHash = await bcrypt.hash(data.password, 12);
 
     return prisma.user.create({
@@ -125,6 +132,13 @@ export class UserService {
   }>) {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundError('User');
+
+    if (data.role === 'ADMIN' && user.role !== 'ADMIN') {
+      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+      if (adminCount > 0) {
+        throw new ValidationError({ role: ['Only one admin user is allowed'] });
+      }
+    }
 
     // Check email uniqueness if changing
     if (data.email && data.email !== user.email) {

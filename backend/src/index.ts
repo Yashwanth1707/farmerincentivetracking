@@ -5,13 +5,13 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
 import fs from 'fs';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
+import { PrismaSessionStore } from './utils/prismaSessionStore';
 import logger from './utils/logger';
 
 // Import routes
@@ -33,6 +33,7 @@ if (!fs.existsSync(config.uploadDir)) {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ── Swagger Configuration ──────────────────────────────────────────────────────
 const swaggerDefinition = {
@@ -47,8 +48,8 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: `http://localhost:${config.port}`,
-      description: 'Development server',
+      url: config.isProd || config.isVercel ? `${config.appUrl}/api` : `http://localhost:${config.port}`,
+      description: config.isProd || config.isVercel ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -76,16 +77,18 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(cors({
-  origin: config.isDev ? true : config.appUrl,
+  origin: config.isDev ? true : config.corsOrigin,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Morgan HTTP logging (via pino)
-app.use(morgan('combined', {
-  stream: { write: (msg: string) => logger.info(msg.trim()) },
-}));
+// HTTP logging in development only
+if (config.isDev) {
+  app.use(morgan('combined', {
+    stream: { write: (msg: string) => logger.info(msg.trim()) },
+  }));
+}
 
 // Rate limiting
 const limiter = rateLimit({
@@ -112,12 +115,14 @@ declare module 'express-session' {
 }
 
 app.use(session({
+  name: 'fims.sid',
+  store: new PrismaSessionStore(),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: config.isProd,
+    secure: config.isProd || config.isVercel,
     sameSite: 'lax',
     maxAge: config.sessionExpiryHours * 60 * 60 * 1000, // 24 hours default
   },
@@ -159,11 +164,20 @@ app.use(errorHandler);
 
 // ── Start Server ──────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(config.port, () => {
-    logger.info(`FIMS Backend server running on port ${config.port}`);
-    logger.info(`API Documentation: http://localhost:${config.port}/api/docs`);
-    logger.info(`Environment: ${config.nodeEnv}`);
-  });
+  const port = config.port;
+  const startServer = () => {
+    app.listen(port, () => {
+      logger.info(`FIMS Backend server running on port ${port}`);
+      logger.info(`API Documentation: http://localhost:${port}/api/docs`);
+      logger.info(`Environment: ${config.nodeEnv}`);
+    });
+  };
+
+  if (process.env.VERCEL) {
+    logger.info('Running in Vercel-compatible mode');
+  } else {
+    startServer();
+  }
 }
 
 export default app;

@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import config from '../config';
+import logger from './logger';
 
 const prisma = new PrismaClient({
   log: [
@@ -8,10 +10,10 @@ const prisma = new PrismaClient({
   ],
 });
 
-// Log queries in development
-if (process.env.NODE_ENV === 'development') {
+// Log queries in development via logger
+if (config.isDev) {
   prisma.$on('query' as never, (e: any) => {
-    console.debug(`[Prisma] ${e.query} [${e.params}] - ${e.duration}ms`);
+    logger.debug(`[Prisma] ${e.query} [${e.params}] - ${e.duration}ms`);
   });
 }
 
