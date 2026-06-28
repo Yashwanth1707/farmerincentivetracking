@@ -80,7 +80,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               : null,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
           filled: true,
-          fillColor: colorScheme.surfaceVariant.withValues(alpha: 0.5),
+          fillColor: colorScheme.surfaceVariant.withOpacity(0.5),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
@@ -92,7 +92,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(
-              color: colorScheme.primary.withValues(alpha: 0.5),
+              color: colorScheme.primary.withOpacity(0.5),
             ),
           ),
         ),
@@ -153,7 +153,7 @@ class FilterChips extends StatelessWidget {
               onSelected: (_) => onChanged(null),
               visualDensity: VisualDensity.compact,
               selectedColor: colorScheme.primaryContainer,
-              backgroundColor: colorScheme.surfaceVariant.withValues(alpha: 0.3),
+              backgroundColor: colorScheme.surfaceVariant.withOpacity(0.3),
               labelStyle: TextStyle(
                 color: selectedValue == null
                     ? colorScheme.primary
@@ -181,7 +181,7 @@ class FilterChips extends StatelessWidget {
                     ? Icon(option.icon, size: 16)
                     : null,
                 selectedColor: colorScheme.primaryContainer,
-                backgroundColor: colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                backgroundColor: colorScheme.surfaceVariant.withOpacity(0.3),
                 labelStyle: TextStyle(
                   color: selectedValue == option.value
                       ? colorScheme.primary
@@ -306,10 +306,10 @@ class _DateField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceVariant.withValues(alpha: 0.5),
+          color: colorScheme.surfaceVariant.withOpacity(0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: Colors.grey.withValues(alpha: 0.2),
+            color: Colors.grey.withOpacity(0.2),
           ),
         ),
         child: Row(

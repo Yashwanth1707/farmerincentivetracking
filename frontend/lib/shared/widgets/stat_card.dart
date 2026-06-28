@@ -44,7 +44,7 @@ class StatCard extends StatelessWidget {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: (iconColor ?? colorScheme.primary)
-                          .withValues(alpha: 0.12),
+                          .withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -78,7 +78,7 @@ class StatCard extends StatelessWidget {
                 Text(
                   subtitle!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.7),
                     fontSize: 11,
                   ),
                 ),

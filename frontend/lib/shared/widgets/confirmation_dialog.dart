@@ -70,7 +70,7 @@ class ConfirmationDialog extends StatelessWidget {
                 color: (iconColor ?? (isDestructive
                         ? AppColors.error
                         : colorScheme.primary))
-                    .withValues(alpha: 0.12),
+                    .withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
