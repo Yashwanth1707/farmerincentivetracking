@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "npm --prefix backend install && npm --prefix backend run vercel-build",
   "builds": [
     {
       "src": "backend/api/index.js",

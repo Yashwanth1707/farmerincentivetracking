@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/responsive_scaffold.dart';
+import '../../features/payments/payment_upload_screen.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 
 // Global key for scaffold messaging
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -113,7 +116,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         name: RouteNames.login,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Login'),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: '/forgot-password',
@@ -134,7 +137,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/dashboard',
             name: RouteNames.dashboard,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Dashboard'),
+                const DashboardScreen(),
           ),
           GoRoute(
             path: '/farmers',
@@ -213,8 +216,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'upload',
                 name: RouteNames.paymentUpload,
-                builder: (context, state) =>
-                    const _PlaceholderScreen(title: 'Upload Payments'),
+                builder: (context, state) => const PaymentUploadScreen(),
               ),
             ],
           ),

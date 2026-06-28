@@ -9,7 +9,6 @@ class ApiEndpoints {
   static const String resetPassword = '$_base/auth/reset-password';
   static const String changePassword = '$_base/auth/change-password';
   static const String me = '$_base/auth/me';
-  static const String refreshSession = '$_base/auth/refresh-session';
 
   // Dashboard
   static const String dashboardStats = '$_base/dashboard/stats';

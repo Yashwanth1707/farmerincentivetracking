@@ -33,23 +33,28 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     const { identifier, password, rememberMe } = req.body;
     const result = await authService.login(identifier, password, rememberMe);
 
-    // Set session
-    req.session.userId = result.user.id;
-    req.session.username = result.user.username;
-    req.session.role = result.user.role;
-    req.session.rememberMe = result.rememberMe || false;
+    req.session.regenerate((err) => {
+      if (err) {
+        next(err);
+        return;
+      }
 
-    if (result.rememberMe) {
-      req.session.cookie.maxAge = result.sessionExpiry;
-    }
+      req.session.userId = result.user.id;
+      req.session.username = result.user.username;
+      req.session.role = result.user.role;
+      req.session.rememberMe = result.rememberMe || false;
 
-    // Audit log
-    req.user = result.user;
+      if (result.rememberMe) {
+        req.session.cookie.maxAge = result.sessionExpiry;
+      }
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: result.user,
+      req.user = result.user;
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: result.user,
+      });
     });
   } catch (error) {
     next(error);
@@ -72,7 +77,11 @@ router.post('/logout', authenticate, (req: Request, res: Response) => {
       res.status(500).json({ success: false, message: 'Logout failed' });
       return;
     }
-    res.clearCookie('connect.sid');
+    res.clearCookie('fims.sid', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
+      sameSite: 'lax',
+    });
     res.json({ success: true, message: 'Logged out successfully' });
   });
 });

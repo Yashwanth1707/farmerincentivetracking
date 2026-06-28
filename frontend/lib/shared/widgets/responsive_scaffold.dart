@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/network/api_endpoints.dart';
+import '../../core/network/dio_client.dart';
 import '../../core/router/app_router.dart';
 
 /// Navigation helper functions used by all scaffold variants
@@ -70,9 +72,15 @@ void _showLogoutDialog(BuildContext context) {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () {
+          onPressed: () async {
             Navigator.of(ctx).pop();
-            context.goNamed(RouteNames.login);
+            try {
+              await DioClient().post(ApiEndpoints.logout);
+            } finally {
+              if (context.mounted) {
+                context.goNamed(RouteNames.login);
+              }
+            }
           },
           child: const Text('Logout'),
         ),

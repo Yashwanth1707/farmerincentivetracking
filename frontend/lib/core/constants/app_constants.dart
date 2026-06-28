@@ -17,7 +17,6 @@ class AppConstants {
 
   // Session
   static const int sessionTimeoutMinutes = 30;
-  static const int tokenRefreshMinutes = 25;
 
   // Financial
   static const double tdsThreshold = 100000.0; // ₹1,00,000
@@ -120,7 +119,6 @@ class SvgAssets {
 }
 
 class SharedPrefKeys {
-  static const String authToken = 'auth_token';
   static const String userData = 'user_data';
   static const String rememberMe = 'remember_me';
   static const String savedEmail = 'saved_email';

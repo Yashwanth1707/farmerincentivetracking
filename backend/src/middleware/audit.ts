@@ -9,13 +9,13 @@ export const auditLog = (action: string, entity?: string) => {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       // Store original end to capture response
-      const originalEnd = _res.end;
+      const originalEnd = _res.end.bind(_res);
       let responseBody: any;
 
-      _res.end = function (this: Response, ...args: any[]) {
-        responseBody = args[0];
-        return originalEnd.apply(this, args);
-      };
+      _res.end = ((chunk?: any, encoding?: any, cb?: any) => {
+        responseBody = chunk;
+        return originalEnd(chunk, encoding, cb);
+      }) as any;
 
       _res.on('finish', async () => {
         try {

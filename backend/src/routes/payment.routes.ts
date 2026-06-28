@@ -60,6 +60,34 @@ router.get('/sample-excel', async (_req: Request, res: Response, next: NextFunct
   }
 });
 
+router.get('/sample-output', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const buffer = paymentService.generateSampleOutputExcel();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=sample_payment_output.xlsx');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/import-errors', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { errors } = req.body;
+    if (!Array.isArray(errors)) {
+      res.status(400).json({ success: false, message: 'errors array is required' });
+      return;
+    }
+
+    const buffer = paymentService.generateImportErrorReport(errors);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=import_error_report.xlsx');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 /**
  * @swagger
  * /api/payments/upload:

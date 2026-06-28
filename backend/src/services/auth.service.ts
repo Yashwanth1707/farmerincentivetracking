@@ -28,6 +28,10 @@ export class AuthService {
       throw new UnauthorizedError('Account is deactivated. Contact administrator.');
     }
 
+    if (user.role !== 'ADMIN') {
+      throw new UnauthorizedError('Admin access required');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedError('Invalid credentials');

@@ -158,24 +158,16 @@ class DioClient {
   }
 }
 
-// Auth interceptor - adds session cookie/token
+// Auth interceptor - sends browser session cookies with API requests.
 class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // In cookie-based auth, the cookie is sent automatically
-    // For any additional auth header if needed:
-    // final prefs = await SharedPreferences.getInstance();
-    // final token = prefs.getString(SharedPrefKeys.authToken);
-    // if (token != null) {
-    //   options.headers['Authorization'] = 'Bearer $token';
-    // }
-
-    // Ensure credentials are included for cookie-based session auth
+    // Enable credentials (cookies) for all requests
     options.extra['withCredentials'] = true;
-
+    
     handler.next(options);
   }
 
@@ -187,6 +179,9 @@ class _AuthInterceptor extends Interceptor {
       // Use a global event bus or provider to handle session expiry
     }
     handler.next(err);
+  }
+}
+
   }
 }
 

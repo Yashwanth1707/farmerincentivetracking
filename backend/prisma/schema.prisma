@@ -42,7 +42,7 @@ model User {
   auditLogs          AuditLog[]
   passwordResets     PasswordReset[]
   smsLogs            SmsLog[]
-  sentSmsRecords     SentSmsRecord[]
+  sentSmsRecords     SentSmsRecord[]      @relation("sms_sender")
 
   @@map("users")
 }
@@ -52,17 +52,31 @@ model Farmer {
   id             String   @id @default(uuid()) @db.Uuid
   farmerId       String   @unique @map("farmer_id")
   aadharNumber   String?  @unique @map("aadhar_number")
+  alternateFarmerId String? @map("alternate_farmer_id")
   name           String
   fatherName     String?  @map("father_name")
+  lastName       String?  @map("last_name")
   village        String
   district       String
+  mandalTaluk    String?  @map("mandal_taluk")
   state          String   @default("Telangana")
+  belongsTo      String?  @map("belongs_to")
+  fieldOfficer   String?  @map("field_officer")
+  centerImplementationPartner String? @map("center_implementation_partner")
   pincode        String?
-  phone          String?
+  phone          String?  @map("registered_mobile_number")
+  bankLinkedMobileNumber String? @map("bank_linked_mobile_number")
   bankName       String?  @map("bank_name")
   branchName     String?  @map("branch_name")
+  branchAddress  String?  @map("branch_address")
   accountNumber  String?  @map("account_number")
+  accountHolderName String? @map("account_holder_name")
+  accountType    String?  @map("account_type")
   ifscCode       String?  @map("ifsc_code")
+  areaInAcres    Decimal? @map("area_in_acres") @db.Decimal(10, 2)
+  areaInHectares Decimal? @map("area_in_hectares") @db.Decimal(10, 2)
+  remarks        String?
+  uploadDate     DateTime? @map("upload_date")
   isActive       Boolean  @default(true) @map("is_active")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -95,7 +109,9 @@ model FinancialYear {
   updatedBy String   @map("updated_by") @db.Uuid
 
   // Relations
+  payments       Payment[]
   paymentBatches PaymentBatch[]
+  tdsRecords     TdsRecord[]
   createdByUser  User          @relation("fy_creator", fields: [createdBy], references: [id])
   updatedByUser  User          @relation("fy_updater", fields: [updatedBy], references: [id])
 
@@ -319,4 +335,14 @@ model PasswordReset {
   @@index([token])
   @@index([expiresAt])
   @@map("password_resets")
+}
+
+// Express session storage for cookie-based admin authentication
+model Session {
+  sid    String   @id
+  sess   Json
+  expire DateTime
+
+  @@index([expire])
+  @@map("sessions")
 }

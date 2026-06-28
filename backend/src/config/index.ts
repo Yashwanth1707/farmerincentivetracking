@@ -4,6 +4,8 @@ import path from 'path';
 // Load .env from project root
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+
 export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -35,8 +37,8 @@ export const config = {
   emailFrom: process.env.EMAIL_FROM || 'noreply@farmerincentive.com',
 
   // App
-  appUrl: process.env.APP_URL || 'http://localhost:3000',
-  corsOrigin: process.env.CORS_ORIGIN || process.env.APP_URL || 'http://localhost:3000',
+  appUrl: process.env.APP_URL || vercelUrl || 'http://localhost:3000',
+  corsOrigin: process.env.CORS_ORIGIN || process.env.APP_URL || vercelUrl || 'http://localhost:3000',
   isVercel: process.env.VERCEL === '1' || process.env.VERCEL === 'true',
 
   // Rate Limiting

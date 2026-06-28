@@ -9,8 +9,8 @@ const backend = spawn('npm', ['--prefix', 'backend', 'run', 'dev'], {
   shell: true,
 });
 
-const frontend = spawn('cd', ['frontend', '&&', 'flutter', 'run', '-d', 'web-server', '--web-port', '3000'], {
-  cwd: root,
+const frontend = spawn('flutter', ['run', '-d', 'web-server', '--web-port', '3000'], {
+  cwd: path.join(root, 'frontend'),
   stdio: 'inherit',
   shell: true,
 });

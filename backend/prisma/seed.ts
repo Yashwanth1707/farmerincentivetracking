@@ -8,6 +8,7 @@ async function main() {
   console.log('🌱 Starting seed...\n');
 
   // Clean existing data
+  await prisma.session.deleteMany();
   await prisma.sentSmsRecord.deleteMany();
   await prisma.smsLog.deleteMany();
   await prisma.batchDetail.deleteMany();
@@ -34,16 +35,6 @@ async function main() {
         passwordHash,
         fullName: 'System Administrator',
         phone: '9999999991',
-        role: UserRole.ADMIN,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        username: 'admin2',
-        email: 'admin2@fims.com',
-        passwordHash,
-        fullName: 'Secondary Admin',
-        phone: '9999999992',
         role: UserRole.ADMIN,
       },
     }),
@@ -167,12 +158,12 @@ async function main() {
   const districts = ['Warangal', 'Hanamkonda', 'Karimnagar', 'Nalgonda', 'Khammam'];
   const banks = ['State Bank of India', 'Canara Bank', 'Union Bank', 'HDFC Bank', 'ICICI Bank'];
 
-  const admins = [users[0], users[1]];
-  const operators = [users[2], users[3], users[4], users[7], users[8]];
+  const admin = users[0];
+  const operators = [users[1], users[2], users[3], users[6], users[7]];
 
   const farmers = [];
   for (let i = 1; i <= 100; i++) {
-    const creator = i <= 50 ? admins[i % admins.length] : operators[i % operators.length];
+    const creator = i <= 50 ? admin : operators[i % operators.length];
     const village = villages[Math.floor(Math.random() * villages.length)];
     const district = districts[Math.floor(Math.random() * districts.length)];
     const bank = banks[Math.floor(Math.random() * banks.length)];
@@ -409,6 +400,10 @@ async function main() {
     prisma.setting.create({ data: { key: 'max_sms_per_day', value: '500', category: 'sms' } }),
     prisma.setting.create({ data: { key: 'currency', value: '"INR"', category: 'payment' } }),
     prisma.setting.create({ data: { key: 'payment_modes', value: '["Bank Transfer","Cheque","Cash"]', category: 'payment' } }),
+    prisma.setting.create({ data: { key: 'payment_remitter_account_no', value: '"123456789012"', category: 'payment' } }),
+    prisma.setting.create({ data: { key: 'payment_remitter_name', value: '"Eco Agripreneurs Pvt Ltd"', category: 'payment' } }),
+    prisma.setting.create({ data: { key: 'payment_remitter_ifsc', value: '"SBIN0012345"', category: 'payment' } }),
+    prisma.setting.create({ data: { key: 'payment_beneficiary_lei_code', value: '""', category: 'payment' } }),
   ]);
 
   console.log('✅ Created settings (TDS, general, SMS, payment)\n');
@@ -457,7 +452,7 @@ async function main() {
 
   console.log('🎉 Seed completed successfully!');
   console.log('\n📋 Summary:');
-  console.log('   - 10 users (2 Admin, 5 Operator, 3 Viewer)');
+  console.log('   - 9 users (1 Admin, 5 Operator, 3 Viewer)');
   console.log('   - 100 farmers (95 active, 5 inactive)');
   console.log('   - 2 financial years');
   console.log('   - 60 payments in FY 2024-2025');

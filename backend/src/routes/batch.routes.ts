@@ -66,6 +66,17 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+router.get('/:id/payment-file', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const buffer = await paymentService.generateBatchPaymentFile(req.params.id);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=batch_${req.params.id}_payment_file.xlsx`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 /**
  * @swagger
  * /api/batches/create:

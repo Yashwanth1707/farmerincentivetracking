@@ -11,6 +11,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
+import { PrismaSessionStore } from './utils/prismaSessionStore';
 import logger from './utils/logger';
 
 // Import routes
@@ -32,6 +33,7 @@ if (!fs.existsSync(config.uploadDir)) {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ── Swagger Configuration ──────────────────────────────────────────────────────
 const swaggerDefinition = {
@@ -46,8 +48,8 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: `http://localhost:${config.port}`,
-      description: 'Development server',
+      url: config.isProd || config.isVercel ? `${config.appUrl}/api` : `http://localhost:${config.port}`,
+      description: config.isProd || config.isVercel ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -81,10 +83,12 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Morgan HTTP logging (via pino)
-app.use(morgan('combined', {
-  stream: { write: (msg: string) => logger.info(msg.trim()) },
-}));
+// HTTP logging in development only
+if (config.isDev) {
+  app.use(morgan('combined', {
+    stream: { write: (msg: string) => logger.info(msg.trim()) },
+  }));
+}
 
 // Rate limiting
 const limiter = rateLimit({
@@ -111,6 +115,8 @@ declare module 'express-session' {
 }
 
 app.use(session({
+  name: 'fims.sid',
+  store: new PrismaSessionStore(),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
