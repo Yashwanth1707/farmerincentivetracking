@@ -26,29 +26,42 @@ class DashboardScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(width: 16),
-                  PopupMenuButton(
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        child: const Text('Profile'),
-                        onTap: () {},
-                      ),
-                      PopupMenuItem(
-                        child: const Text('Settings'),
-                        onTap: () {},
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        child: const Text('Logout'),
-                        onTap: () async {
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.account_circle),
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'profile':
+                          // TODO: Navigate to profile
+                          break;
+
+                        case 'settings':
+                          // TODO: Navigate to settings
+                          break;
+
+                        case 'logout':
                           await authNotifier.logout();
                           if (context.mounted) {
                             context.goNamed('login');
                           }
-                        },
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => const <PopupMenuEntry<String>>[
+                      PopupMenuItem<String>(
+                        value: 'profile',
+                        child: Text('Profile'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'settings',
+                        child: Text('Settings'),
+                      ),
+                      PopupMenuDivider(),
+                      PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Text('Logout'),
                       ),
                     ],
-                    icon: const Icon(Icons.account_circle),
-                  ),
+                  )
                 ],
               ),
             ),

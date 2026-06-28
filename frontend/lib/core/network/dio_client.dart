@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../constants/app_constants.dart';
 
 class DioClient {
@@ -17,9 +18,8 @@ class DioClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        validateStatus: (status) {
-          return status != null && status >= 200 && status < 500;
-        },
+        validateStatus: (status) =>
+            status != null && status >= 200 && status < 500,
       ),
     );
 
@@ -32,13 +32,12 @@ class DioClient {
 
   Dio get dio => _dio;
 
-  // GET request
   Future<Response> get(
     String path, {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
+  }) {
     return _dio.get(
       path,
       queryParameters: queryParameters,
@@ -47,14 +46,13 @@ class DioClient {
     );
   }
 
-  // POST request
   Future<Response> post(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
+  }) {
     return _dio.post(
       path,
       data: data,
@@ -64,14 +62,13 @@ class DioClient {
     );
   }
 
-  // PUT request
   Future<Response> put(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
+  }) {
     return _dio.put(
       path,
       data: data,
@@ -81,14 +78,13 @@ class DioClient {
     );
   }
 
-  // PATCH request
   Future<Response> patch(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
+  }) {
     return _dio.patch(
       path,
       data: data,
@@ -98,14 +94,13 @@ class DioClient {
     );
   }
 
-  // DELETE request
   Future<Response> delete(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
-  }) async {
+  }) {
     return _dio.delete(
       path,
       data: data,
@@ -115,7 +110,6 @@ class DioClient {
     );
   }
 
-  // Multipart upload
   Future<Response> uploadFile(
     String path, {
     required String filePath,
@@ -135,7 +129,9 @@ class DioClient {
       cancelToken: cancelToken,
       onSendProgress: onSendProgress,
       options: Options(
-        headers: {'Content-Type': 'multipart/form-data'},
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       ),
     );
   }
@@ -182,8 +178,6 @@ class _AuthInterceptor extends Interceptor {
   }
 }
 
-  }
-}
 
 // Logging interceptor
 class _LoggingInterceptor extends Interceptor {
