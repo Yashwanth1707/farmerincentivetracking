@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
 import { authenticate } from '../middleware/auth';
-import { auditLog } from '../middleware/audit';
+import { validate } from '../middleware/validate';
+import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../validators/auth.validator';
 
 const router = Router();
 
@@ -10,7 +11,8 @@ const router = Router();
  * /api/auth/login:
  *   post:
  *     tags: [Authentication]
- *     summary: Login user
+ *     summary: Authenticate user and create session
+ *     description: Login with username/email and password. Sets HTTP-only session cookie. Supports "Remember Me" for extended session.
  *     requestBody:
  *       required: true
  *       content:
@@ -19,16 +21,42 @@ const router = Router();
  *             type: object
  *             required: [identifier, password]
  *             properties:
- *               identifier: { type: string, description: Username or email }
- *               password: { type: string }
- *               rememberMe: { type: boolean }
+ *               identifier:
+ *                 type: string
+ *                 description: Username or email address
+ *                 example: admin
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: password123
+ *               rememberMe:
+ *                 type: boolean
+ *                 description: Extend session expiry to 30 days
+ *                 default: false
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful — session cookie set
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string, format: uuid }
+ *                     username: { type: string }
+ *                     email: { type: string }
+ *                     fullName: { type: string }
+ *                     role: { type: string, enum: [ADMIN, OPERATOR, VIEWER] }
  *       401:
- *         description: Invalid credentials
+ *         description: Invalid credentials or deactivated account
+ *       429:
+ *         description: Too many requests
  */
-router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/login', validate(loginSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { identifier, password, rememberMe } = req.body;
     const result = await authService.login(identifier, password, rememberMe);
@@ -43,7 +71,6 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
       req.session.cookie.maxAge = result.sessionExpiry;
     }
 
-    // Audit log
     req.user = result.user;
 
     res.json({
@@ -61,10 +88,20 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
  * /api/auth/logout:
  *   post:
  *     tags: [Authentication]
- *     summary: Logout user
+ *     summary: Logout and destroy session
+ *     description: Destroys the current session and clears the session cookie.
+ *     security:
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
  */
 router.post('/logout', authenticate, (req: Request, res: Response) => {
   req.session.destroy((err) => {
@@ -82,12 +119,32 @@ router.post('/logout', authenticate, (req: Request, res: Response) => {
  * /api/auth/me:
  *   get:
  *     tags: [Authentication]
- *     summary: Get current user profile
+ *     summary: Get current authenticated user profile
+ *     description: Returns the profile of the currently logged-in user based on session cookie.
  *     security:
  *       - cookieAuth: []
  *     responses:
  *       200:
- *         description: User profile
+ *         description: User profile data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string }
+ *                     username: { type: string }
+ *                     email: { type: string }
+ *                     fullName: { type: string }
+ *                     role: { type: string }
+ *                     phone: { type: string }
+ *                     isActive: { type: boolean }
+ *                     lastLoginAt: { type: string, format: date-time }
+ *       401:
+ *         description: Not authenticated
  */
 router.get('/me', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -103,7 +160,8 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
  * /api/auth/forgot-password:
  *   post:
  *     tags: [Authentication]
- *     summary: Request password reset
+ *     summary: Request password reset email
+ *     description: Sends a password reset link to the user's email if the email exists in the system.
  *     requestBody:
  *       required: true
  *       content:
@@ -112,12 +170,22 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
  *             type: object
  *             required: [email]
  *             properties:
- *               email: { type: string }
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
  *     responses:
  *       200:
- *         description: Reset link sent
+ *         description: Reset link sent (even if email doesn't exist — to prevent enumeration)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
  */
-router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/forgot-password', validate(forgotPasswordSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await authService.forgotPassword(req.body.email);
     res.json({ success: true, ...result });
@@ -131,7 +199,8 @@ router.post('/forgot-password', async (req: Request, res: Response, next: NextFu
  * /api/auth/reset-password:
  *   post:
  *     tags: [Authentication]
- *     summary: Reset password with token
+ *     summary: Reset password using reset token
+ *     description: Resets the user's password using a valid (non-expired, unused) reset token received via email.
  *     requestBody:
  *       required: true
  *       content:
@@ -140,13 +209,24 @@ router.post('/forgot-password', async (req: Request, res: Response, next: NextFu
  *             type: object
  *             required: [token, newPassword]
  *             properties:
- *               token: { type: string }
- *               newPassword: { type: string }
+ *               token:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Reset token from email
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: Must contain uppercase, lowercase, and number
  *     responses:
  *       200:
  *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired token
+ *       404:
+ *         description: Token not found
  */
-router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/reset-password', validate(resetPasswordSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { token, newPassword } = req.body;
     const result = await authService.resetPassword(token, newPassword);
@@ -161,7 +241,8 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
  * /api/auth/change-password:
  *   post:
  *     tags: [Authentication]
- *     summary: Change password (authenticated)
+ *     summary: Change password for authenticated user
+ *     description: Changes the password for the currently logged-in user. Requires current password verification.
  *     security:
  *       - cookieAuth: []
  *     requestBody:
@@ -172,13 +253,20 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
  *             type: object
  *             required: [currentPassword, newPassword]
  *             properties:
- *               currentPassword: { type: string }
- *               newPassword: { type: string }
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
  *     responses:
  *       200:
- *         description: Password changed
+ *         description: Password changed successfully
+ *       401:
+ *         description: Current password is incorrect
  */
-router.post('/change-password', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/change-password', authenticate, validate(changePasswordSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const result = await authService.changePassword(req.user!.id, currentPassword, newPassword);

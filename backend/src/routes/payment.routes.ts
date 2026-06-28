@@ -4,18 +4,15 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { paymentService } from '../services/payment.service';
 import { authenticate, authorize } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { tdsDecisionSchema } from '../validators/batch.validator';
 import { config } from '../config';
 
 const router = Router();
 
-// Multer setup for Excel uploads
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, config.uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    cb(null, `${uuidv4()}${path.extname(file.originalname)}`);
-  },
+  destination: (_req, _file, cb) => cb(null, config.uploadDir),
+  filename: (_req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`),
 });
 
 const upload = multer({
@@ -39,10 +36,13 @@ router.use(authenticate);
  * /api/payments/sample-excel:
  *   get:
  *     tags: [Payments]
- *     summary: Download sample Excel template
+ *     summary: Download sample Excel template for payment upload
+ *     description: Returns an Excel file with 10 sample farmers and payment data. Use this as a template for bulk uploads.
+ *     security:
+ *       - cookieAuth: []
  *     responses:
  *       200:
- *         description: Excel file
+ *         description: Excel file download
  *         content:
  *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
  *             schema:
@@ -66,6 +66,7 @@ router.get('/sample-excel', async (_req: Request, res: Response, next: NextFunct
  *   post:
  *     tags: [Payments]
  *     summary: Upload Excel file for payment processing
+ *     description: Upload an Excel file with payment data. Parsed and validated — returns preview with TDS calculations.
  *     security:
  *       - cookieAuth: []
  *     requestBody:
@@ -74,15 +75,19 @@ router.get('/sample-excel', async (_req: Request, res: Response, next: NextFunct
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required: [file, financialYearId]
  *             properties:
  *               file:
  *                 type: string
  *                 format: binary
  *               financialYearId:
  *                 type: string
+ *                 format: uuid
  *     responses:
  *       200:
- *         description: File uploaded and parsed
+ *         description: File parsed — preview data with validation results
+ *       400:
+ *         description: Invalid file or missing financialYearId
  */
 router.post('/upload', authorize('ADMIN', 'OPERATOR'), upload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -90,22 +95,16 @@ router.post('/upload', authorize('ADMIN', 'OPERATOR'), upload.single('file'), as
       res.status(400).json({ success: false, message: 'No file uploaded' });
       return;
     }
-
     const { financialYearId } = req.body;
     if (!financialYearId) {
       res.status(400).json({ success: false, message: 'financialYearId is required' });
       return;
     }
-
     const parsed = await paymentService.parseExcel(req.file.path);
     const preview = await paymentService.previewPayments(parsed.validRows, financialYearId);
-
     res.json({
       success: true,
-      data: {
-        parsed: { ...parsed, filePath: undefined },
-        preview,
-      },
+      data: { parsed: { ...parsed, filePath: undefined }, preview },
     });
   } catch (error) {
     next(error);
@@ -118,20 +117,12 @@ router.post('/upload', authorize('ADMIN', 'OPERATOR'), upload.single('file'), as
  *   post:
  *     tags: [Payments]
  *     summary: Preview payment data before confirming
+ *     description: Returns calculated amounts (gross, TDS, net) for each payment row with TDS rules applied.
  *     security:
  *       - cookieAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               rows: { type: array }
- *               financialYearId: { type: string }
  *     responses:
  *       200:
- *         description: Preview results
+ *         description: Preview results with TDS calculations
  */
 router.post('/preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -152,11 +143,22 @@ router.post('/preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res
  *   post:
  *     tags: [Payments]
  *     summary: Confirm and save uploaded payments
+ *     description: Saves validated payment data from the preview step to the database. Skips duplicates and missing farmers.
  *     security:
  *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [previewResults, financialYearId]
+ *             properties:
+ *               previewResults: { type: array, description: Array of preview results from /preview }
+ *               financialYearId: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Payments confirmed
+ *         description: Payments confirmed and saved
  */
 router.post('/confirm', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -178,28 +180,32 @@ router.post('/confirm', authorize('ADMIN', 'OPERATOR'), async (req: Request, res
  *   post:
  *     tags: [Payments]
  *     summary: Make TDS decision for a farmer
+ *     description: Records admin decision on TDS applicability when cumulative incentives exceed ₹1,00,000 threshold.
  *     security:
  *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: farmerId
  *         required: true
- *         schema: { type: string }
+ *         schema: { type: string, format: uuid }
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [financialYearId, decision]
  *             properties:
- *               financialYearId: { type: string }
+ *               financialYearId: { type: string, format: uuid }
  *               decision: { type: string, enum: [YES, NO] }
  *               notes: { type: string }
  *     responses:
  *       200:
  *         description: TDS decision recorded
+ *       404:
+ *         description: Farmer not found
  */
-router.post('/tds-decision/:farmerId', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/tds-decision/:farmerId', authorize('ADMIN', 'OPERATOR'), validate(tdsDecisionSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await paymentService.handleTdsDecision(
       req.params.farmerId,
