@@ -131,7 +131,8 @@ class _DesktopScaffold extends StatelessWidget {
       body: Row(
         children: [
           // Sidebar
-          NavigationRail(
+          SingleChildScrollView(
+            child: NavigationRail(
             selectedIndex: _getSelectedIndex(context),
             onDestinationSelected: (index) =>
                 _navigateToIndex(context, index),
