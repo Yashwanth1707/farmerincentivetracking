@@ -5,9 +5,8 @@ import '../constants/app_constants.dart';
 
 class DioClient {
   late final Dio _dio;
-  final Ref? _ref;
 
-  DioClient({Ref? ref, String? baseUrl}) : _ref = ref {
+  DioClient({Ref? ref, String? baseUrl}) {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl ?? ApiConstants.defaultBaseUrl,
@@ -163,7 +162,7 @@ class _AuthInterceptor extends Interceptor {
   ) async {
     // Enable credentials (cookies) for all requests
     options.extra['withCredentials'] = true;
-    
+
     handler.next(options);
   }
 
@@ -177,7 +176,6 @@ class _AuthInterceptor extends Interceptor {
     handler.next(err);
   }
 }
-
 
 // Logging interceptor
 class _LoggingInterceptor extends Interceptor {
@@ -227,14 +225,16 @@ class _ErrorInterceptor extends Interceptor {
       case DioExceptionType.receiveTimeout:
         err = DioException(
           requestOptions: err.requestOptions,
-          message: 'Connection timed out. Please check your internet connection.',
+          message:
+              'Connection timed out. Please check your internet connection.',
           type: err.type,
           error: err.error,
         );
         break;
       case DioExceptionType.badResponse:
         final statusCode = err.response?.statusCode;
-        final message = err.response?.data?['message'] ?? _getErrorMessage(statusCode);
+        final message =
+            err.response?.data?['message'] ?? _getErrorMessage(statusCode);
         err = DioException(
           requestOptions: err.requestOptions,
           response: err.response,

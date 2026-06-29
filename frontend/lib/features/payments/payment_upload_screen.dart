@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/network/dio_client.dart';
 
-final paymentUploadControllerProvider = StateNotifierProvider<PaymentUploadController, PaymentUploadState>((ref) {
+final paymentUploadControllerProvider =
+    StateNotifierProvider<PaymentUploadController, PaymentUploadState>((ref) {
   return PaymentUploadController(ref);
 });
 
@@ -39,7 +40,8 @@ class PaymentUploadState {
       uploadResult: uploadResult ?? this.uploadResult,
       previewRows: previewRows ?? this.previewRows,
       summary: summary ?? this.summary,
-      selectedFinancialYearId: selectedFinancialYearId ?? this.selectedFinancialYearId,
+      selectedFinancialYearId:
+          selectedFinancialYearId ?? this.selectedFinancialYearId,
     );
   }
 }
@@ -69,7 +71,9 @@ class PaymentUploadController extends StateNotifier<PaymentUploadState> {
       final response = await _client.uploadFile(
         ApiEndpoints.paymentsUpload,
         filePath: filePath,
-        extraFields: {'financialYearId': state.selectedFinancialYearId ?? 'demo-fy'},
+        extraFields: {
+          'financialYearId': state.selectedFinancialYearId ?? 'demo-fy'
+        },
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
@@ -96,7 +100,7 @@ class PaymentUploadController extends StateNotifier<PaymentUploadState> {
   }
 
   Future<void> downloadSampleInput() async {
-    final response = await _client.get(ApiEndpoints.paymentsUpload.replaceFirst('/upload', '/sample-excel'));
+    final response = await _client.get(ApiEndpoints.paymentsSampleExcel);
     if (response.statusCode == 200) {
       // Browser download is handled by the backend endpoint in web; for mobile this can be saved locally.
       // The current screen shows the action as available and leaves the file handling to the platform integration.
@@ -105,7 +109,7 @@ class PaymentUploadController extends StateNotifier<PaymentUploadState> {
   }
 
   Future<void> downloadSampleOutput() async {
-    final response = await _client.get(ApiEndpoints.paymentsUpload.replaceFirst('/upload', '/sample-output'));
+    final response = await _client.get(ApiEndpoints.paymentsSampleOutput);
     if (response.statusCode == 200) {
       return;
     }
@@ -140,12 +144,14 @@ class PaymentUploadScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Upload Excel file', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Upload Excel file',
+                        style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 12),
                     TextField(
                       decoration: const InputDecoration(
                         labelText: 'Financial Year ID',
-                        hintText: 'Use the existing financial year ID from the backend',
+                        hintText:
+                            'Use the existing financial year ID from the backend',
                       ),
                       onChanged: controller.setFinancialYear,
                     ),
@@ -155,17 +161,23 @@ class PaymentUploadScreen extends ConsumerWidget {
                       runSpacing: 12,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: state.isLoading ? null : controller.pickAndUploadFile,
+                          onPressed: state.isLoading
+                              ? null
+                              : controller.pickAndUploadFile,
                           icon: const Icon(Icons.upload_file),
                           label: const Text('Upload Excel'),
                         ),
                         OutlinedButton.icon(
-                          onPressed: state.isLoading ? null : controller.downloadSampleInput,
+                          onPressed: state.isLoading
+                              ? null
+                              : controller.downloadSampleInput,
                           icon: const Icon(Icons.download),
                           label: const Text('Download Sample Input'),
                         ),
                         OutlinedButton.icon(
-                          onPressed: state.isLoading ? null : controller.downloadSampleOutput,
+                          onPressed: state.isLoading
+                              ? null
+                              : controller.downloadSampleOutput,
                           icon: const Icon(Icons.download_done),
                           label: const Text('Download Sample Output'),
                         ),
@@ -177,7 +189,8 @@ class PaymentUploadScreen extends ConsumerWidget {
                     ],
                     if (state.error != null) ...[
                       const SizedBox(height: 12),
-                      Text(state.error!, style: const TextStyle(color: Colors.red)),
+                      Text(state.error!,
+                          style: const TextStyle(color: Colors.red)),
                     ],
                   ],
                 ),
@@ -191,17 +204,31 @@ class PaymentUploadScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Import Summary', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Import Summary',
+                          style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 16,
                         runSpacing: 8,
                         children: [
-                          _SummaryChip(label: 'Total', value: '${state.summary!['totalRecords'] ?? 0}'),
-                          _SummaryChip(label: 'Imported', value: '${state.summary!['successfullyValidated'] ?? 0}'),
-                          _SummaryChip(label: 'Failed', value: '${state.summary!['failedRecords'] ?? 0}'),
-                          _SummaryChip(label: 'Duplicate Farmer IDs', value: '${state.summary!['duplicateFarmerIds'] ?? 0}'),
-                          _SummaryChip(label: 'Duplicate Mobile Numbers', value: '${state.summary!['duplicateMobileNumbers'] ?? 0}'),
+                          _SummaryChip(
+                              label: 'Total',
+                              value: '${state.summary!['totalRecords'] ?? 0}'),
+                          _SummaryChip(
+                              label: 'Imported',
+                              value:
+                                  '${state.summary!['successfullyValidated'] ?? 0}'),
+                          _SummaryChip(
+                              label: 'Failed',
+                              value: '${state.summary!['failedRecords'] ?? 0}'),
+                          _SummaryChip(
+                              label: 'Duplicate Farmer IDs',
+                              value:
+                                  '${state.summary!['duplicateFarmerIds'] ?? 0}'),
+                          _SummaryChip(
+                              label: 'Duplicate Mobile Numbers',
+                              value:
+                                  '${state.summary!['duplicateMobileNumbers'] ?? 0}'),
                         ],
                       ),
                     ],
@@ -217,7 +244,8 @@ class PaymentUploadScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Payment Preview', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Payment Preview',
+                          style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -238,15 +266,24 @@ class PaymentUploadScreen extends ConsumerWidget {
                             rows: state.previewRows.map((row) {
                               final item = row as Map<String, dynamic>;
                               return DataRow(cells: [
-                                DataCell(Text(item['farmerId']?.toString() ?? '')),
-                                DataCell(Text(item['farmerName']?.toString() ?? '')),
-                                DataCell(Text(item['village']?.toString() ?? '')),
-                                DataCell(Text(item['bankName']?.toString() ?? '')),
-                                DataCell(Text(item['ifscCode']?.toString() ?? '')),
-                                DataCell(Text(item['accountNumber']?.toString() ?? '')),
-                                DataCell(Text(item['grossAmount']?.toString() ?? '')),
-                                DataCell(Text(item['tdsAmount']?.toString() ?? '')),
-                                DataCell(Text(item['netAmount']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['farmerId']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['farmerName']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['village']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['bankName']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['ifscCode']?.toString() ?? '')),
+                                DataCell(Text(
+                                    item['accountNumber']?.toString() ?? '')),
+                                DataCell(Text(
+                                    item['grossAmount']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['tdsAmount']?.toString() ?? '')),
+                                DataCell(
+                                    Text(item['netAmount']?.toString() ?? '')),
                               ]);
                             }).toList(),
                           ),
@@ -282,7 +319,11 @@ class _SummaryChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: Theme.of(context).textTheme.labelMedium),
-          Text(value, style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Text(value,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(fontWeight: FontWeight.bold)),
         ],
       ),
     );

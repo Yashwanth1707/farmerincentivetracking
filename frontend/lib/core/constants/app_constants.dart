@@ -99,10 +99,14 @@ class AppStrings {
   static const String finish = 'Finish';
   static const String required = 'Required';
   static const String invalidEmail = 'Please enter a valid email';
-  static const String invalidMobile = 'Please enter a valid 10-digit mobile number';
-  static const String invalidAadhaar = 'Please enter a valid 12-digit Aadhaar number';
-  static const String invalidPan = 'Please enter a valid PAN (e.g., ABCDE1234F)';
-  static const String passwordMinLength = 'Password must be at least 6 characters';
+  static const String invalidMobile =
+      'Please enter a valid 10-digit mobile number';
+  static const String invalidAadhaar =
+      'Please enter a valid 12-digit Aadhaar number';
+  static const String invalidPan =
+      'Please enter a valid PAN (e.g., ABCDE1234F)';
+  static const String passwordMinLength =
+      'Password must be at least 6 characters';
   static const String passwordsNotMatch = 'Passwords do not match';
 }
 

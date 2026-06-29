@@ -67,10 +67,9 @@ class ConfirmationDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: (iconColor ?? (isDestructive
-                        ? AppColors.error
-                        : colorScheme.primary))
-                    .withOpacity(0.12),
+                color: (iconColor ??
+                        (isDestructive ? AppColors.error : colorScheme.primary))
+                    .withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -115,8 +114,8 @@ class ConfirmationDialog extends StatelessWidget {
         ),
         FilledButton(
           style: FilledButton.styleFrom(
-            backgroundColor: confirmColor ??
-                (isDestructive ? AppColors.error : null),
+            backgroundColor:
+                confirmColor ?? (isDestructive ? AppColors.error : null),
           ),
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(confirmText),

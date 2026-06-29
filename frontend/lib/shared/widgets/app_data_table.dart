@@ -68,7 +68,7 @@ class AppDataTable extends StatelessWidget {
                 Icon(
                   Icons.inbox_rounded,
                   size: 64,
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -81,7 +81,7 @@ class AppDataTable extends StatelessWidget {
                 Text(
                   'There are no records to display.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -96,8 +96,9 @@ class AppDataTable extends StatelessWidget {
         if (showHeader) ...[
           Container(
             decoration: BoxDecoration(
-              color: colorScheme.surfaceVariant.withOpacity(0.3),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -106,9 +107,12 @@ class AppDataTable extends StatelessWidget {
                 return Expanded(
                   flex: column.flex?.toInt() ?? 1,
                   child: InkWell(
-                    onTap: column.sortable ? () => onSort?.call(column.field) : null,
+                    onTap: column.sortable
+                        ? () => onSort?.call(column.field)
+                        : null,
                     child: Row(
-                      mainAxisAlignment: column.alignment ?? MainAxisAlignment.start,
+                      mainAxisAlignment:
+                          column.alignment ?? MainAxisAlignment.start,
                       children: [
                         Text(
                           column.header,
@@ -130,7 +134,8 @@ class AppDataTable extends StatelessWidget {
                             size: 14,
                             color: isSorted
                                 ? colorScheme.primary
-                                : colorScheme.onSurfaceVariant.withOpacity(0.5),
+                                : colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.5),
                           ),
                         ],
                       ],
@@ -145,17 +150,19 @@ class AppDataTable extends StatelessWidget {
           child: ListView.separated(
             itemCount: data.length,
             separatorBuilder: (_, __) =>
-                Divider(height: 1, color: Colors.grey.withOpacity(0.1)),
+                Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1)),
             itemBuilder: (context, index) {
               final row = data[index];
               return InkWell(
                 onTap: onRowTap != null ? () => onRowTap!(row) : null,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: index.isEven
                         ? Colors.transparent
-                        : colorScheme.surfaceVariant.withOpacity(0.15),
+                        : colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.15),
                   ),
                   child: Row(
                     children: columns.map((column) {
@@ -185,7 +192,8 @@ class AppDataTable extends StatelessWidget {
     if (value == null) {
       return Text(
         '-',
-        style: TextStyle(color: colorScheme.onSurfaceVariant.withOpacity(0.5)),
+        style: TextStyle(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
       );
     }
 
@@ -228,16 +236,15 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final config = _getStatusConfig(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: config.backgroundColor.withOpacity(0.12),
+        color: config.backgroundColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: config.backgroundColor.withOpacity(0.3),
+          color: config.backgroundColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(

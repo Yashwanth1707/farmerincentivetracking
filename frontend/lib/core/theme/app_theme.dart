@@ -83,9 +83,9 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surfaceLight,
-        indicatorColor: AppColors.primaryLight.withOpacity(0.25),
-        labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>((states) {
-          if (states.contains(MaterialState.selected)) {
+        indicatorColor: AppColors.primaryLight.withValues(alpha: 0.25),
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
+          if (states.contains(WidgetState.selected)) {
             return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -105,7 +105,7 @@ class AppTheme {
         margin: const EdgeInsets.symmetric(vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.primary.withOpacity(0.08)),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.08)),
         ),
         clipBehavior: Clip.antiAlias,
       ),
@@ -130,7 +130,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          side: BorderSide(color: AppColors.primary.withOpacity(0.85)),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.85)),
           foregroundColor: AppColors.primary,
           textStyle: const TextStyle(
             fontSize: 15,
@@ -152,11 +152,13 @@ class AppTheme {
         fillColor: AppColors.surfaceLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.2)),
+          borderSide:
+              BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.primary.withOpacity(0.2)),
+          borderSide:
+              BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -170,9 +172,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: AppColors.error, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         labelStyle: TextStyle(color: AppColors.textSecondary),
-        hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.6)),
+        hintStyle:
+            TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6)),
       ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
@@ -181,7 +185,7 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withValues(alpha: 0.2),
         thickness: 1,
       ),
       dialogTheme: DialogThemeData(
@@ -225,7 +229,7 @@ class AppTheme {
           fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
           ),
         ),
       ),
@@ -261,7 +265,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         clipBehavior: Clip.antiAlias,
       ),
@@ -279,12 +283,13 @@ class AppTheme {
         fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.grey.withOpacity(0.2),
+        color: Colors.grey.withValues(alpha: 0.2),
         thickness: 1,
       ),
       dialogTheme: DialogThemeData(

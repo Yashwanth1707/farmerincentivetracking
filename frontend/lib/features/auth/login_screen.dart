@@ -43,7 +43,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   final DioClient _client = DioClient();
 
-  Future<void> login(String identifier, String password, {bool rememberMe = false}) async {
+  Future<void> login(String identifier, String password,
+      {bool rememberMe = false}) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -126,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FIMS Login'),
+        title: const Text('Login'),
         centerTitle: true,
         elevation: 0,
       ),
@@ -144,7 +145,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 32),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -166,7 +168,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.25),
                                     blurRadius: 18,
                                     offset: const Offset(0, 10),
                                   ),
@@ -184,7 +189,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Text(
                           'Welcome back to FIMS',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary,
                               ),
@@ -193,17 +201,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Text(
                           'Manage payments, farmers, and reports in one easy dashboard.',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                         ),
                         const SizedBox(height: 26),
                         if (authState.error != null)
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 16, horizontal: 18),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.errorContainer,
+                              color:
+                                  Theme.of(context).colorScheme.errorContainer,
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
@@ -218,7 +229,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: Text(
                                     authState.error!,
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.error,
+                                      color:
+                                          Theme.of(context).colorScheme.error,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -270,10 +282,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 : () {
                                     if (identifierController.text.isEmpty ||
                                         passwordController.text.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         const SnackBar(
                                           behavior: SnackBarBehavior.floating,
-                                          content: Text('Please fill all fields'),
+                                          content:
+                                              Text('Please fill all fields'),
                                         ),
                                       );
                                       return;
@@ -290,7 +304,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnPrimary),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppColors.textOnPrimary),
                                     ),
                                   )
                                 : const Text('Sign In'),
@@ -301,9 +316,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           alignment: Alignment.center,
                           child: Text(
                             'Demo credentials: admin / password123',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
                           ),
                         ),
                       ],
@@ -318,4 +334,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

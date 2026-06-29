@@ -8,10 +8,6 @@ class Formatters {
     locale: 'en_IN',
   );
 
-  static final _compactCurrencyFormat = NumberFormat.compact(
-    locale: 'en_IN',
-  );
-
   static final _dateFormat = DateFormat('dd/MM/yyyy');
   static final _dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm');
   static final _timeFormat = DateFormat('HH:mm');
@@ -22,14 +18,18 @@ class Formatters {
   /// Format amount as Indian currency (e.g., ₹1,23,456.78)
   static String currency(dynamic amount) {
     if (amount == null) return '₹0.00';
-    final value = amount is num ? amount.toDouble() : double.tryParse(amount.toString()) ?? 0;
+    final value = amount is num
+        ? amount.toDouble()
+        : double.tryParse(amount.toString()) ?? 0;
     return _currencyFormat.format(value);
   }
 
   /// Format amount in compact form (e.g., ₹1.2L, ₹5Cr)
   static String compactCurrency(dynamic amount) {
     if (amount == null) return '₹0';
-    final value = amount is num ? amount.toDouble() : double.tryParse(amount.toString()) ?? 0;
+    final value = amount is num
+        ? amount.toDouble()
+        : double.tryParse(amount.toString()) ?? 0;
     if (value >= 10000000) {
       return '₹${(value / 10000000).toStringAsFixed(1)}Cr';
     } else if (value >= 100000) {
@@ -109,7 +109,8 @@ class Formatters {
   /// Format percentage (e.g., 1.5%)
   static String percentage(dynamic value) {
     if (value == null) return '0%';
-    final numValue = value is num ? value : double.tryParse(value.toString()) ?? 0;
+    final numValue =
+        value is num ? value : double.tryParse(value.toString()) ?? 0;
     return '${numValue.toStringAsFixed(1)}%';
   }
 

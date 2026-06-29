@@ -32,7 +32,7 @@ class Paginator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          top: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
       ),
       child: Row(
@@ -50,7 +50,7 @@ class Paginator extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -87,9 +87,7 @@ class Paginator extends StatelessWidget {
               // First page
               IconButton(
                 icon: const Icon(Icons.first_page_rounded),
-                onPressed: currentPage > 0
-                    ? () => onPageChanged(0)
-                    : null,
+                onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
                 visualDensity: VisualDensity.compact,
                 tooltip: 'First page',
               ),

@@ -88,7 +88,9 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
           borderRadius: widget.shape != null
               ? null
               : BorderRadius.circular(widget.borderRadius),
-          shape: widget.shape is CircleBorder ? BoxShape.circle : BoxShape.rectangle,
+          shape: widget.shape is CircleBorder
+              ? BoxShape.circle
+              : BoxShape.rectangle,
         ),
       ),
     );
@@ -195,7 +197,8 @@ class TableSkeleton extends StatelessWidget {
               columnCount,
               (index) => Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(right: index < columnCount - 1 ? 16 : 0),
+                  padding:
+                      EdgeInsets.only(right: index < columnCount - 1 ? 16 : 0),
                   child: SkeletonLoader.text(height: 16),
                 ),
               ),
@@ -213,7 +216,8 @@ class TableSkeleton extends StatelessWidget {
                 columnCount,
                 (index) => Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(right: index < columnCount - 1 ? 16 : 0),
+                    padding: EdgeInsets.only(
+                        right: index < columnCount - 1 ? 16 : 0),
                     child: SkeletonLoader.text(height: 14),
                   ),
                 ),

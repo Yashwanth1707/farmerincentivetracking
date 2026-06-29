@@ -60,6 +60,57 @@ void _navigateToIndex(BuildContext context, int index) {
   }
 }
 
+int _getMobileSelectedIndex(BuildContext context) {
+  final location = GoRouterState.of(context).matchedLocation;
+  if (location.startsWith('/dashboard')) return 0;
+  if (location.startsWith('/farmers')) return 1;
+  if (location.startsWith('/payments')) return 2;
+  if (location.startsWith('/reports')) return 3;
+  return 4;
+}
+
+void _showMoreNavigation(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          _MoreTile(
+              icon: Icons.inventory_2_rounded,
+              label: AppStrings.batches,
+              route: RouteNames.batches),
+          _MoreTile(
+              icon: Icons.percent_rounded,
+              label: AppStrings.tds,
+              route: RouteNames.tds),
+          _MoreTile(
+              icon: Icons.message_rounded,
+              label: AppStrings.sms,
+              route: RouteNames.sms),
+          _MoreTile(
+              icon: Icons.history_rounded,
+              label: AppStrings.auditLogs,
+              route: RouteNames.auditLogs),
+          _MoreTile(
+              icon: Icons.calendar_month_rounded,
+              label: AppStrings.financialYears,
+              route: RouteNames.financialYears),
+          _MoreTile(
+              icon: Icons.people_outline_rounded,
+              label: AppStrings.users,
+              route: RouteNames.users),
+          _MoreTile(
+              icon: Icons.settings_rounded,
+              label: AppStrings.settings,
+              route: RouteNames.settings),
+        ],
+      ),
+    ),
+  );
+}
+
 void _showLogoutDialog(BuildContext context) {
   showDialog(
     context: context,
@@ -133,39 +184,40 @@ class _DesktopScaffold extends StatelessWidget {
           // Sidebar
           SingleChildScrollView(
             child: NavigationRail(
-            selectedIndex: _getSelectedIndex(context),
-            onDestinationSelected: (index) =>
-                _navigateToIndex(context, index),
-            labelType: NavigationRailLabelType.all,
-            backgroundColor: colorScheme.surface,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.agriculture_rounded,
-                    size: 40,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'FIMS',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+              selectedIndex: _getSelectedIndex(context),
+              onDestinationSelected: (index) =>
+                  _navigateToIndex(context, index),
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: colorScheme.surface,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.agriculture_rounded,
+                      size: 40,
                       color: colorScheme.primary,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'FIMS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            destinations: _navDestinations(context),
-            trailing: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: IconButton(
-                icon: const Icon(Icons.logout_rounded),
-                tooltip: 'Logout',
-                onPressed: () => _showLogoutDialog(context),
+              destinations: _navDestinations(context),
+              trailing: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: IconButton(
+                  icon: const Icon(Icons.logout_rounded),
+                  tooltip: 'Logout',
+                  onPressed: () => _showLogoutDialog(context),
+                ),
               ),
             ),
           ),
@@ -270,59 +322,73 @@ class _TabletScaffold extends StatelessWidget {
       body: Row(
         children: [
           // Mini sidebar
-          NavigationRail(
-            selectedIndex: _getSelectedIndex(context),
-            onDestinationSelected: (index) =>
-                _navigateToIndex(context, index),
-            labelType: NavigationRailLabelType.none,
-            backgroundColor: colorScheme.surface,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Icon(
-                Icons.agriculture_rounded,
-                size: 32,
-                color: colorScheme.primary,
+          SingleChildScrollView(
+            child: NavigationRail(
+              selectedIndex: _getSelectedIndex(context),
+              onDestinationSelected: (index) =>
+                  _navigateToIndex(context, index),
+              labelType: NavigationRailLabelType.none,
+              backgroundColor: colorScheme.surface,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Icon(
+                  Icons.agriculture_rounded,
+                  size: 32,
+                  color: colorScheme.primary,
+                ),
               ),
-            ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.payments_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.inventory_2_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.percent_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.message_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.assessment_rounded),
-                label: Text(''),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.history_rounded),
-                label: Text(''),
-              ),
-            ],
-            trailing: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: IconButton(
-                icon: const Icon(Icons.logout_rounded),
-                onPressed: () => _showLogoutDialog(context),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.dashboard_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.people_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.payments_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.inventory_2_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.percent_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.message_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.assessment_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.history_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.calendar_month_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.people_outline_rounded),
+                  label: Text(''),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.settings_rounded),
+                  label: Text(''),
+                ),
+              ],
+              trailing: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: IconButton(
+                  icon: const Icon(Icons.logout_rounded),
+                  onPressed: () => _showLogoutDialog(context),
+                ),
               ),
             ),
           ),
@@ -369,9 +435,14 @@ class _MobileScaffold extends StatelessWidget {
         child: child,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _getSelectedIndex(context),
-        onDestinationSelected: (index) =>
-            _navigateToIndex(context, index),
+        selectedIndex: _getMobileSelectedIndex(context),
+        onDestinationSelected: (index) {
+          if (index == 0) context.goNamed(RouteNames.dashboard);
+          if (index == 1) context.goNamed(RouteNames.farmers);
+          if (index == 2) context.goNamed(RouteNames.payments);
+          if (index == 3) context.goNamed(RouteNames.reports);
+          if (index == 4) _showMoreNavigation(context);
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_rounded),
@@ -404,6 +475,30 @@ class _MobileScaffold extends StatelessWidget {
   }
 }
 
+class _MoreTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String route;
+
+  const _MoreTile({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      onTap: () {
+        Navigator.of(context).pop();
+        context.goNamed(route);
+      },
+    );
+  }
+}
+
 /// Top bar with breadcrumbs and user info
 class _TopBar extends StatelessWidget {
   @override
@@ -417,7 +512,7 @@ class _TopBar extends StatelessWidget {
         color: colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -430,7 +525,7 @@ class _TopBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withOpacity(0.2),
+              color: colorScheme.primaryContainer.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -522,9 +617,8 @@ class _Breadcrumb extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: segment == segments.last
-                  ? FontWeight.w600
-                  : FontWeight.w400,
+              fontWeight:
+                  segment == segments.last ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
         ],

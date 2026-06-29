@@ -4,23 +4,31 @@ import '../../core/router/app_router.dart';
 /// Helper class to show snackbar messages
 class AppSnackbar {
   /// Show a success snackbar
-  static void success(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    _showSnackbar(context, message, SnackbarType.success, actionLabel: actionLabel, onAction: onAction);
+  static void success(BuildContext context, String message,
+      {String? actionLabel, VoidCallback? onAction}) {
+    _showSnackbar(context, message, SnackbarType.success,
+        actionLabel: actionLabel, onAction: onAction);
   }
 
   /// Show an error snackbar
-  static void error(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    _showSnackbar(context, message, SnackbarType.error, actionLabel: actionLabel, onAction: onAction);
+  static void error(BuildContext context, String message,
+      {String? actionLabel, VoidCallback? onAction}) {
+    _showSnackbar(context, message, SnackbarType.error,
+        actionLabel: actionLabel, onAction: onAction);
   }
 
   /// Show a warning snackbar
-  static void warning(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    _showSnackbar(context, message, SnackbarType.warning, actionLabel: actionLabel, onAction: onAction);
+  static void warning(BuildContext context, String message,
+      {String? actionLabel, VoidCallback? onAction}) {
+    _showSnackbar(context, message, SnackbarType.warning,
+        actionLabel: actionLabel, onAction: onAction);
   }
 
   /// Show an info snackbar
-  static void info(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    _showSnackbar(context, message, SnackbarType.info, actionLabel: actionLabel, onAction: onAction);
+  static void info(BuildContext context, String message,
+      {String? actionLabel, VoidCallback? onAction}) {
+    _showSnackbar(context, message, SnackbarType.info,
+        actionLabel: actionLabel, onAction: onAction);
   }
 
   /// Internal method to show snackbar
@@ -94,8 +102,7 @@ class AppSnackbar {
     );
 
     // Use the root scaffold messenger key to show snackbar
-    rootScaffoldMessengerKey.currentState
-        ?.showSnackBar(snackBar);
+    rootScaffoldMessengerKey.currentState?.showSnackBar(snackBar);
   }
 
   /// Show a loading snackbar

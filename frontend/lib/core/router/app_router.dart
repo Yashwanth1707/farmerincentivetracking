@@ -4,14 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/responsive_scaffold.dart';
 import '../../features/payments/payment_upload_screen.dart';
 import '../../features/auth/login_screen.dart';
-import '../../features/dashboard/dashboard_screen.dart';
+import '../../features/admin/resource_screens.dart';
+import '../../features/farmers/farmers_screen.dart';
 
 // Global key for scaffold messaging
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
-
-// Auth state provider
-final authStateProvider = StateProvider<bool>((ref) => false);
 
 // User role provider
 final userRoleProvider = StateProvider<String?>((ref) => null);
@@ -49,16 +47,13 @@ class RouteNames {
   static const String changePassword = 'change-password';
 }
 
-/// Temporary placeholder screen - will be replaced with actual screens
+/// Simple route fallback for utility auth screens that are not backend-backed yet.
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
-  final String? subtitle;
 
   const _PlaceholderScreen({
-    Key? key,
     required this.title,
-    this.subtitle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +66,8 @@ class _PlaceholderScreen extends StatelessWidget {
             Icon(
               Icons.construction_rounded,
               size: 64,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
             Text(
@@ -81,16 +77,6 @@ class _PlaceholderScreen extends StatelessWidget {
                   ),
               textAlign: TextAlign.center,
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
             const SizedBox(height: 32),
             Text(
               '🚧 Under Construction',
@@ -136,14 +122,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/dashboard',
             name: RouteNames.dashboard,
-            builder: (context, state) =>
-                const DashboardScreen(),
+            builder: (context, state) => const ApiDashboardScreen(),
           ),
           GoRoute(
             path: '/farmers',
             name: RouteNames.farmers,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Farmers'),
+            builder: (context, state) => const FarmersScreen(),
             routes: [
               GoRoute(
                 path: 'create',
@@ -171,7 +155,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/users',
             name: RouteNames.users,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Users'),
+                ResourceListScreen(config: ResourceConfigs.users),
             routes: [
               GoRoute(
                 path: 'create',
@@ -191,7 +175,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/financial-years',
             name: RouteNames.financialYears,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Financial Years'),
+                ResourceListScreen(config: ResourceConfigs.financialYears),
             routes: [
               GoRoute(
                 path: 'create',
@@ -211,7 +195,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/payments',
             name: RouteNames.payments,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Payments'),
+                ResourceListScreen(config: ResourceConfigs.payments),
             routes: [
               GoRoute(
                 path: 'upload',
@@ -224,7 +208,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/batches',
             name: RouteNames.batches,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Batches'),
+                ResourceListScreen(config: ResourceConfigs.batches),
             routes: [
               GoRoute(
                 path: ':id',
@@ -238,7 +222,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/tds',
             name: RouteNames.tds,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'TDS Tracking'),
+                ResourceListScreen(config: ResourceConfigs.tds),
             routes: [
               GoRoute(
                 path: 'history',
@@ -252,27 +236,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/sms',
             name: RouteNames.sms,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'SMS Module'),
+                ResourceListScreen(config: ResourceConfigs.sms),
             routes: [
               GoRoute(
                 path: 'logs',
                 name: RouteNames.smsLogs,
                 builder: (context, state) =>
-                    const _PlaceholderScreen(title: 'SMS Logs'),
+                    ResourceListScreen(config: ResourceConfigs.smsLogs),
               ),
             ],
           ),
           GoRoute(
             path: '/reports',
             name: RouteNames.reports,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Reports'),
+            builder: (context, state) => const ReportsScreen(),
             routes: [
               GoRoute(
                 path: ':type',
                 name: RouteNames.reportDetail,
-                builder: (context, state) =>
-                    _PlaceholderScreen(title: 'Report: ${state.pathParameters['type'] ?? ''}'),
+                builder: (context, state) => _PlaceholderScreen(
+                    title: 'Report: ${state.pathParameters['type'] ?? ''}'),
               ),
             ],
           ),
@@ -280,19 +263,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/audit-logs',
             name: RouteNames.auditLogs,
             builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Audit Logs'),
+                ResourceListScreen(config: ResourceConfigs.auditLogs),
           ),
           GoRoute(
             path: '/settings',
             name: RouteNames.settings,
-            builder: (context, state) =>
-                const _PlaceholderScreen(title: 'Settings'),
+            builder: (context, state) => const SettingsScreen(),
             routes: [
               GoRoute(
                 path: 'change-password',
                 name: RouteNames.changePassword,
-                builder: (context, state) =>
-                    const _PlaceholderScreen(title: 'Change Password'),
+                builder: (context, state) => const ChangePasswordScreen(),
               ),
             ],
           ),
