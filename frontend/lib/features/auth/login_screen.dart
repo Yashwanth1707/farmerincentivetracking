@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:dio/dio.dart';
 
 // Auth state providers
 final authStateProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
@@ -43,9 +44,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   final DioClient _client = DioClient();
 
-  Future<void> login(String identifier, String password,
-      {bool rememberMe = false}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> login(
+    String identifier,
+    String password, {
+    bool rememberMe = false,
+  }) async {
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+    );
 
     try {
       final response = await _client.post(
@@ -57,19 +64,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        state = state.copyWith(
-          isLoading: false,
-          isAuthenticated: true,
-          user: response.data['data'],
-        );
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          error: response.data['message'] ?? 'Login failed',
-        );
-      }
+      print("Status: ${response.statusCode}");
+      print("Response:");
+      print(response.data);
+
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        user: response.data['data'],
+      );
+    } on DioException catch (e) {
+      print("Status: ${e.response?.statusCode}");
+      print("Response:");
+      print(e.response?.data);
+
+      state = state.copyWith(
+        isLoading: false,
+        error: e.response?.data?['message'] ?? e.message ?? 'Login failed',
+      );
     } catch (e) {
+      print(e);
+
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
