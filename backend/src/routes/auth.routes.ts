@@ -3,7 +3,7 @@ import { authService } from '../services/auth.service';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../validators/auth.validator';
-
+import { config } from '../config';
 const router = Router();
 
 /**
@@ -73,10 +73,16 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response,
 
     req.user = result.user;
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: result.user,
+    req.session.save((err) => {
+      if (err) {
+        return next(err);
+      }
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: result.user,
+      });
     });
   } catch (error) {
     next(error);
@@ -103,14 +109,25 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response,
  *                 success: { type: boolean }
  *                 message: { type: string }
  */
-router.post('/logout', authenticate, (req: Request, res: Response) => {
+router.post('/logout', authenticate, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      res.status(500).json({ success: false, message: 'Logout failed' });
-      return;
+      return res.status(500).json({
+        success: false,
+        message: 'Logout failed',
+      });
     }
-    res.clearCookie('connect.sid');
-    res.json({ success: true, message: 'Logged out successfully' });
+
+    res.clearCookie('fims.sid', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: config.isProd || config.isVercel,
+    });
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully',
+    });
   });
 });
 

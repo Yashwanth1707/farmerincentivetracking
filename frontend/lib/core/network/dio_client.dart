@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 
 class DioClient {
@@ -21,6 +21,10 @@ class DioClient {
             status != null && status >= 200 && status < 500,
       ),
     );
+
+    if (kIsWeb) {
+      (_dio.httpClientAdapter as dynamic).withCredentials = true;
+    }
 
     _dio.interceptors.addAll([
       _AuthInterceptor(),
@@ -161,8 +165,6 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     // Enable credentials (cookies) for all requests
-    options.extra['withCredentials'] = true;
-
     handler.next(options);
   }
 

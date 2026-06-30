@@ -7,6 +7,8 @@ import prisma from '../utils/prisma';
  */
 export const authenticate = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
+    console.log("AUTH SESSION ID:", req.sessionID);
+    console.log("AUTH SESSION:", req.session);
     if (!req.session?.userId) {
       throw new UnauthorizedError('Please log in to access this resource');
     }

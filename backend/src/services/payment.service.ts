@@ -484,16 +484,18 @@ export class PaymentService {
     }));
 
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(rows, { header: [
-      'Transaction_Ref_No',
-      'Remitter_Account_No',
-      'Remitter_Name',
-      'IFSC_Code',
-      'Amount',
-      'Bank_Account_Number',
-      'Beneficiary_Name',
-      'Beneficiary_LEI_Code',
-    ] });
+    const worksheet = XLSX.utils.json_to_sheet(rows, {
+      header: [
+        'Transaction_Ref_No',
+        'Remitter_Account_No',
+        'Remitter_Name',
+        'IFSC_Code',
+        'Amount',
+        'Bank_Account_Number',
+        'Beneficiary_Name',
+        'Beneficiary_LEI_Code',
+      ]
+    });
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Payments');
     return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
   }
@@ -694,8 +696,9 @@ export class PaymentService {
     status?: string;
     financialYearId?: string;
   }): Promise<PaginatedResult<any>> {
-    const page = params.page || 1;
-    const limit = params.limit || 20;
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 20;
+
     const skip = (page - 1) * limit;
     const where: any = {};
 

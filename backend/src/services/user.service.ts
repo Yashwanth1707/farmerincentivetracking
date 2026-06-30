@@ -7,7 +7,13 @@ export class UserService {
   /**
    * List all users with pagination
    */
-  async list(params: { page?: number; limit?: number; search?: string }): Promise<PaginatedResult<any>> {
+  async list(
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+    } = {}
+  ): Promise<PaginatedResult<any>> {
     const page = params.page || 1;
     const limit = params.limit || 20;
     const skip = (page - 1) * limit;

@@ -4,22 +4,20 @@ import '../../core/constants/app_constants.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/router/app_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/login_screen.dart';
 
 /// Navigation helper functions used by all scaffold variants
 int _getSelectedIndex(BuildContext context) {
   final location = GoRouterState.of(context).matchedLocation;
+
   if (location.startsWith('/dashboard')) return 0;
   if (location.startsWith('/farmers')) return 1;
   if (location.startsWith('/payments')) return 2;
-  if (location.startsWith('/batches')) return 3;
-  if (location.startsWith('/tds')) return 4;
-  if (location.startsWith('/sms')) return 5;
-  if (location.startsWith('/reports')) return 6;
-  if (location.startsWith('/audit-logs')) return 7;
-  if (location.startsWith('/financial-years')) return 8;
-  if (location.startsWith('/users')) return 9;
-  if (location.startsWith('/settings')) return 10;
-  return 0;
+  if (location.startsWith('/reports')) return 3;
+
+  // All remaining routes map to "More"
+  return 4;
 }
 
 void _navigateToIndex(BuildContext context, int index) {
@@ -27,35 +25,20 @@ void _navigateToIndex(BuildContext context, int index) {
     case 0:
       context.goNamed(RouteNames.dashboard);
       break;
+
     case 1:
       context.goNamed(RouteNames.farmers);
       break;
+
     case 2:
       context.goNamed(RouteNames.payments);
       break;
+
     case 3:
-      context.goNamed(RouteNames.batches);
-      break;
-    case 4:
-      context.goNamed(RouteNames.tds);
-      break;
-    case 5:
-      context.goNamed(RouteNames.sms);
-      break;
-    case 6:
       context.goNamed(RouteNames.reports);
       break;
-    case 7:
-      context.goNamed(RouteNames.auditLogs);
-      break;
-    case 8:
-      context.goNamed(RouteNames.financialYears);
-      break;
-    case 9:
-      context.goNamed(RouteNames.users);
-      break;
-    case 10:
-      context.goNamed(RouteNames.settings);
+    case 4:
+      _showMoreNavigation(context); // <-- ADD IT HERE
       break;
   }
 }
@@ -143,25 +126,25 @@ void _showLogoutDialog(BuildContext context) {
 /// Responsive scaffold that shows sidebar on desktop and bottom nav on mobile
 class ResponsiveScaffold extends StatelessWidget {
   final Widget child;
-  final String? currentRoute;
 
   const ResponsiveScaffold({
     super.key,
     required this.child,
-    this.currentRoute,
   });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= AppConstants.desktopBreakpoint) {
+        if (constraints.maxWidth >= 1200) {
           return _DesktopScaffold(child: child);
-        } else if (constraints.maxWidth >= AppConstants.tabletBreakpoint) {
-          return _TabletScaffold(child: child);
-        } else {
-          return _MobileScaffold(child: child);
         }
+
+        if (constraints.maxWidth >= 768) {
+          return _TabletScaffold(child: child);
+        }
+
+        return _MobileScaffold(child: child);
       },
     );
   }
@@ -179,131 +162,80 @@ class _DesktopScaffold extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      body: Row(
-        children: [
-          // Sidebar
-          SingleChildScrollView(
-            child: NavigationRail(
-              selectedIndex: _getSelectedIndex(context),
-              onDestinationSelected: (index) =>
-                  _navigateToIndex(context, index),
-              labelType: NavigationRailLabelType.all,
-              backgroundColor: colorScheme.surface,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+      body: SafeArea(
+        child: SizedBox.expand(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Sidebar
+              SizedBox(
+                width: 88,
+                child: NavigationRail(
+                  selectedIndex: _getSelectedIndex(context),
+                  onDestinationSelected: (index) =>
+                      _navigateToIndex(context, index),
+                  labelType: NavigationRailLabelType.all,
+                  backgroundColor: colorScheme.surface,
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.agriculture_rounded,
+                          size: 40,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'FIMS',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  destinations: _navDestinations(context),
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: IconButton(
+                      icon: const Icon(Icons.logout_rounded),
+                      tooltip: 'Logout',
+                      onPressed: () => _showLogoutDialog(context),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Vertical divider
+              const VerticalDivider(width: 1),
+
+              // Main content area
+              Expanded(
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.agriculture_rounded,
-                      size: 40,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'FIMS',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
+                    // Top bar
+                    _TopBar(),
+                    // Content
+
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: SizedBox.expand(
+                          child: child,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              destinations: _navDestinations(context),
-              trailing: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: IconButton(
-                  icon: const Icon(Icons.logout_rounded),
-                  tooltip: 'Logout',
-                  onPressed: () => _showLogoutDialog(context),
-                ),
-              ),
-            ),
+            ],
           ),
-
-          // Vertical divider
-          const VerticalDivider(width: 1),
-
-          // Main content area
-          Expanded(
-            child: Column(
-              children: [
-                // Top bar
-                _TopBar(),
-                // Content
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: child,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
-  }
-
-  List<NavigationRailDestination> _navDestinations(BuildContext context) {
-    return [
-      NavigationRailDestination(
-        icon: const Icon(Icons.dashboard_rounded),
-        selectedIcon: const Icon(Icons.dashboard_rounded),
-        label: const Text(AppStrings.dashboard),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.people_rounded),
-        selectedIcon: const Icon(Icons.people_rounded),
-        label: const Text(AppStrings.farmers),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.payments_rounded),
-        selectedIcon: const Icon(Icons.payments_rounded),
-        label: const Text(AppStrings.payments),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.inventory_2_rounded),
-        selectedIcon: const Icon(Icons.inventory_2_rounded),
-        label: const Text(AppStrings.batches),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.percent_rounded),
-        selectedIcon: const Icon(Icons.percent_rounded),
-        label: const Text(AppStrings.tds),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.message_rounded),
-        selectedIcon: const Icon(Icons.message_rounded),
-        label: const Text(AppStrings.sms),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.assessment_rounded),
-        selectedIcon: const Icon(Icons.assessment_rounded),
-        label: const Text(AppStrings.reports),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.history_rounded),
-        selectedIcon: const Icon(Icons.history_rounded),
-        label: const Text(AppStrings.auditLogs),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.calendar_month_rounded),
-        selectedIcon: const Icon(Icons.calendar_month_rounded),
-        label: const Text(AppStrings.financialYears),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.people_outline_rounded),
-        selectedIcon: const Icon(Icons.people_outline_rounded),
-        label: const Text(AppStrings.users),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.settings_rounded),
-        selectedIcon: const Icon(Icons.settings_rounded),
-        label: const Text(AppStrings.settings),
-      ),
-    ];
   }
 }
 
@@ -319,94 +251,54 @@ class _TabletScaffold extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      body: Row(
-        children: [
-          // Mini sidebar
-          SingleChildScrollView(
-            child: NavigationRail(
-              selectedIndex: _getSelectedIndex(context),
-              onDestinationSelected: (index) =>
-                  _navigateToIndex(context, index),
-              labelType: NavigationRailLabelType.none,
-              backgroundColor: colorScheme.surface,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Icon(
-                  Icons.agriculture_rounded,
-                  size: 32,
-                  color: colorScheme.primary,
-                ),
-              ),
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.dashboard_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.people_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.payments_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.inventory_2_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.percent_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.message_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.assessment_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.history_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.calendar_month_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.people_outline_rounded),
-                  label: Text(''),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.settings_rounded),
-                  label: Text(''),
-                ),
-              ],
-              trailing: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: IconButton(
-                  icon: const Icon(Icons.logout_rounded),
-                  onPressed: () => _showLogoutDialog(context),
-                ),
-              ),
-            ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: Column(
-              children: [
-                _TopBar(),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: child,
+      body: SafeArea(
+        child: SizedBox.expand(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 72,
+                child: NavigationRail(
+                  selectedIndex: _getSelectedIndex(context),
+                  onDestinationSelected: (index) =>
+                      _navigateToIndex(context, index),
+                  labelType: NavigationRailLabelType.none,
+                  backgroundColor: colorScheme.surface,
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Icon(
+                      Icons.agriculture_rounded,
+                      size: 32,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  destinations: _navDestinations(context),
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: IconButton(
+                      icon: const Icon(Icons.logout_rounded),
+                      onPressed: () => _showLogoutDialog(context),
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: Column(
+                  children: [
+                    _TopBar(),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: child,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -437,36 +329,43 @@ class _MobileScaffold extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getMobileSelectedIndex(context),
         onDestinationSelected: (index) {
-          if (index == 0) context.goNamed(RouteNames.dashboard);
-          if (index == 1) context.goNamed(RouteNames.farmers);
-          if (index == 2) context.goNamed(RouteNames.payments);
-          if (index == 3) context.goNamed(RouteNames.reports);
-          if (index == 4) _showMoreNavigation(context);
+          switch (index) {
+            case 0:
+              context.goNamed(RouteNames.dashboard);
+              break;
+            case 1:
+              context.goNamed(RouteNames.farmers);
+              break;
+            case 2:
+              context.goNamed(RouteNames.payments);
+              break;
+            case 3:
+              context.goNamed(RouteNames.reports);
+              break;
+            case 4:
+              _showMoreNavigation(context);
+              break;
+          }
         },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_rounded),
-            selectedIcon: Icon(Icons.dashboard_rounded),
             label: 'Dashboard',
           ),
           NavigationDestination(
             icon: Icon(Icons.people_rounded),
-            selectedIcon: Icon(Icons.people_rounded),
             label: 'Farmers',
           ),
           NavigationDestination(
             icon: Icon(Icons.payments_rounded),
-            selectedIcon: Icon(Icons.payments_rounded),
             label: 'Payments',
           ),
           NavigationDestination(
             icon: Icon(Icons.assessment_rounded),
-            selectedIcon: Icon(Icons.assessment_rounded),
             label: 'Reports',
           ),
           NavigationDestination(
             icon: Icon(Icons.more_horiz_rounded),
-            selectedIcon: Icon(Icons.more_horiz_rounded),
             label: 'More',
           ),
         ],
@@ -500,81 +399,60 @@ class _MoreTile extends StatelessWidget {
 }
 
 /// Top bar with breadcrumbs and user info
-class _TopBar extends StatelessWidget {
+
+
+class _TopBar extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+
+    final userName =
+        authState.user?['fullName'] ??
+        authState.user?['username'] ??
+        'User';
+
+    final role = authState.user?['role'] ?? '';
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.withValues(alpha: 0.2),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Breadcrumb
-          _Breadcrumb(),
-          const Spacer(),
-          // Financial year selector
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
+    return SizedBox(
+      height: 64,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(child: _Breadcrumb()),
+
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: colorScheme.primaryContainer,
+              child: Icon(
+                Icons.person_rounded,
+                color: colorScheme.primary,
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+
+            const SizedBox(width: 8),
+
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: 16,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
                 Text(
-                  'FY 2025-26',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.primary,
+                  userName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_drop_down_rounded,
-                  size: 18,
-                  color: colorScheme.primary,
+                Text(
+                  role,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 16),
-          // User avatar
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(
-              Icons.person_rounded,
-              size: 20,
-              color: colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Admin User',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -588,41 +466,70 @@ class _Breadcrumb extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final segments = location.split('/').where((s) => s.isNotEmpty).toList();
 
-    return Row(
-      children: [
-        Icon(
-          Icons.home_rounded,
-          size: 18,
-          color: theme.colorScheme.primary,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          'Home',
-          style: TextStyle(
-            fontSize: 13,
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        for (final segment in segments) ...[
-          const SizedBox(width: 4),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
           Icon(
-            Icons.chevron_right_rounded,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
+            Icons.home_rounded,
+            size: 18,
+            color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 4),
           Text(
-            segment.replaceAll('-', ' '),
+            'Home',
             style: TextStyle(
               fontSize: 13,
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight:
-                  segment == segments.last ? FontWeight.w600 : FontWeight.w400,
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w500,
             ),
           ),
+          for (final segment in segments) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              segment.replaceAll('-', ' '),
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: segment == segments.last
+                    ? FontWeight.w600
+                    : FontWeight.w400,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
+}
+
+List<NavigationRailDestination> _navDestinations(BuildContext context) {
+  return const [
+    NavigationRailDestination(
+      icon: Icon(Icons.dashboard_rounded),
+      label: Text("Dashboard"),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.people_rounded),
+      label: Text("Farmers"),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.payments_rounded),
+      label: Text("Payments"),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.assessment_rounded),
+      label: Text("Reports"),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.more_horiz),
+      label: Text("More"),
+    ),
+  ];
 }

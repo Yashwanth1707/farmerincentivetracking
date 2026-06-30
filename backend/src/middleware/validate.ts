@@ -9,11 +9,16 @@ export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' 
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
       const parsed = schema.parse(req[source]);
-      
+
       // Replace with parsed (coerced/defaulted) values
-      if (source === 'body') req.body = parsed;
-      else if (source === 'query') (req as any).validatedQuery = parsed;
-      
+      if (source === 'body') {
+        req.body = parsed;
+      } else if (source === 'query') {
+        req.query = parsed as any;
+      } else if (source === 'params') {
+        req.params = parsed as any;
+      }
+
       next();
     } catch (error) {
       if (error instanceof ZodError) {

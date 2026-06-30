@@ -36,7 +36,10 @@ router.use(authenticate, authorize('ADMIN'));
 router.get('/', validate(userQuerySchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await userService.list(req.query as any);
-    res.json({ success: true, ...result });
+    res.json({
+      success: true,
+      ...result,
+    });
   } catch (error) {
     next(error);
   }

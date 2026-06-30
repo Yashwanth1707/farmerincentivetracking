@@ -16,7 +16,10 @@ export class FarmerService {
       ...filters
     } = params;
 
-    const skip = (page - 1) * limit;
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 20;
+
+    const skip = (pageNumber - 1) * limitNumber;
     const where: any = {};
 
     // Search across name, farmerId, village, phone
@@ -39,7 +42,7 @@ export class FarmerService {
       prisma.farmer.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNumber,
         orderBy: { [sortBy]: sortOrder },
         include: {
           createdByUser: { select: { id: true, fullName: true } },
@@ -52,11 +55,11 @@ export class FarmerService {
     return {
       data,
       pagination: {
-        page,
-        limit,
+        page: pageNumber,
+        limit: limitNumber,
         total,
-        totalPages: Math.ceil(total / limit),
-      },
+        totalPages: Math.ceil(total / limitNumber),
+      }
     };
   }
 

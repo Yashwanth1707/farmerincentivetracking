@@ -10,7 +10,7 @@ export class AuthService {
    * Authenticate user with username/email and password
    */
   async login(identifier: string, password: string, rememberMe: boolean = false) {
-    // Find user by username or email
+    // Find user by username or email 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -28,10 +28,11 @@ export class AuthService {
       throw new UnauthorizedError('Account is deactivated. Contact administrator.');
     }
 
-    if (user.role !== 'ADMIN') {
-      throw new UnauthorizedError('Admin access required');
-    }
+    const allowedRoles = ['ADMIN', 'OPERATOR', 'VIEWER'];
 
+    if (!allowedRoles.includes(user.role)) {
+      throw new UnauthorizedError('Access denied');
+    }
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedError('Invalid credentials');

@@ -159,6 +159,49 @@ class ResourceListScreen extends ConsumerWidget {
   }
 }
 
+final financialYearsProvider =
+    FutureProvider.autoDispose<List<JsonMap>>((ref) async {
+  final response = await DioClient().get(
+    ApiEndpoints.financialYears,
+    queryParameters: {
+      'page': 1,
+      'limit': 100,
+    },
+  );
+  print(response.data);
+  return _extractRows(response.data['data']);
+});
+
+final batchesProvider = FutureProvider.autoDispose<List<JsonMap>>((ref) async {
+  final response = await DioClient().get(
+    ApiEndpoints.batches,
+    queryParameters: {
+      'page': 1,
+      'limit': 100,
+    },
+  );
+
+  
+  return _extractRows(response.data['data']);
+});
+
+final farmerSearchProvider = FutureProvider.family
+    .autoDispose<List<JsonMap>, String>((ref, search) async {
+  if (search.trim().isEmpty) return [];
+
+  final response = await DioClient().get(
+    ApiEndpoints.farmers,
+    queryParameters: {
+      'search': search,
+      'page': 1,
+      'limit': 20,
+    },
+  );
+
+
+  return _extractRows(response.data['data']);
+});
+
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
 
@@ -167,24 +210,29 @@ class ReportsScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
-  final _farmerId = TextEditingController();
-  final _batchId = TextEditingController();
-  final _financialYearId = TextEditingController();
+  String? _selectedBatchId;
+  String? _selectedFinancialYearId;
+  final _farmerSearchController = TextEditingController();
+  JsonMap? _selectedFarmer;
   final _client = DioClient();
+
   bool _loading = false;
   JsonMap? _result;
   String? _error;
 
   @override
   void dispose() {
-    _farmerId.dispose();
-    _batchId.dispose();
-    _financialYearId.dispose();
+    _farmerSearchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final financialYears = ref.watch(financialYearsProvider);
+    final batches = ref.watch(batchesProvider);
+    final farmers = ref.watch(
+      farmerSearchProvider(_farmerSearchController.text),
+    );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,15 +252,117 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               runSpacing: 12,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _Input(
+                SizedBox(
+                  width: 320,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _farmerSearchController,
+                        decoration: const InputDecoration(
+                          labelText: 'Search Farmer',
+                          hintText: 'Farmer ID / Mobile / Name',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (_) {
+                          setState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      farmers.when(
+                        loading: () => const SizedBox(),
+                        error: (_, __) => const SizedBox(),
+                        data: (rows) {
+                          if (rows.isEmpty) {
+                            return const SizedBox();
+                          }
+
+                          return SizedBox(
+                            height: 180,
+                            child: ListView.builder(
+                              itemCount: rows.length,
+                              itemBuilder: (_, index) {
+                                final farmer = rows[index];
+
+                                return ListTile(
+                                  title: Text(farmer["name"] ?? ""),
+                                  subtitle: Text(
+                                    "${farmer["farmerId"]} • ${farmer["phone"] ?? ""}",
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedFarmer = farmer;
+                                      _farmerSearchController.text =
+                                          farmer["name"] ?? "";
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                financialYears.when(
+                  loading: () => const SizedBox(
                     width: 260,
-                    controller: _farmerId,
-                    label: 'Farmer internal ID'),
-                _Input(width: 260, controller: _batchId, label: 'Batch ID'),
-                _Input(
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (_, __) => const SizedBox(),
+                  data: (rows) {
+                    return SizedBox(
+                      width: 260,
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: "Financial Year",
+                        ),
+                        value: _selectedFinancialYearId,
+                        items: rows.map((fy) {
+                          return DropdownMenuItem<String>(
+                            value: fy["id"].toString(),
+                            child: Text(fy["yearLabel"]),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedFinancialYearId = value;
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
+                batches.when(
+                  loading: () => const SizedBox(
                     width: 260,
-                    controller: _financialYearId,
-                    label: 'Financial Year ID'),
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (_, __) => const SizedBox(),
+                  data: (rows) {
+                    return SizedBox(
+                      width: 260,
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: "Batch",
+                        ),
+                        value: _selectedBatchId,
+                        items: rows.map((batch) {
+                          return DropdownMenuItem<String>(
+                            value: batch["id"].toString(),
+                            child: Text(batch["batchNumber"]),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedBatchId = value;
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
                 FilledButton.icon(
                   onPressed: _loading
                       ? null
@@ -221,34 +371,44 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   label: const Text('Payment Register'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _loading
+                  onPressed: _selectedFarmer == null
                       ? null
-                      : () => _run(ApiEndpoints.reportFarmerLedger(
-                          _farmerId.text.trim())),
+                      : () => _run(
+                            ApiEndpoints.reportFarmerLedger(
+                              _selectedFarmer!["id"].toString(),
+                            ),
+                          ),
                   icon: const Icon(Icons.person_rounded),
                   label: const Text('Farmer Ledger'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _loading
+                  onPressed: _selectedBatchId == null
                       ? null
                       : () => _run(
-                          ApiEndpoints.reportBatchReport(_batchId.text.trim())),
+                            ApiEndpoints.reportBatchReport(_selectedBatchId!),
+                          ),
                   icon: const Icon(Icons.inventory_2_rounded),
                   label: const Text('Batch Report'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _loading
+                  onPressed: _selectedFinancialYearId == null
                       ? null
-                      : () => _run(ApiEndpoints.reportFyReport(
-                          _financialYearId.text.trim())),
+                      : () => _run(
+                            ApiEndpoints.reportFyReport(
+                              _selectedFinancialYearId!,
+                            ),
+                          ),
                   icon: const Icon(Icons.calendar_month_rounded),
                   label: const Text('FY Report'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _loading
+                  onPressed: _selectedFinancialYearId == null
                       ? null
-                      : () => _run(ApiEndpoints.reportTdsReport(
-                          _financialYearId.text.trim())),
+                      : () => _run(
+                            ApiEndpoints.reportTdsReport(
+                              _selectedFinancialYearId!,
+                            ),
+                          ),
                   icon: const Icon(Icons.percent_rounded),
                   label: const Text('TDS Report'),
                 ),
@@ -1245,27 +1405,37 @@ Future<void> _postAction(
 }
 
 List<JsonMap> _extractRows(dynamic value) {
+  if (value == null) return [];
+
+  // Already a list
   if (value is List) {
-    return value.whereType<Map>().map((item) => JsonMap.from(item)).toList();
+    return value
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
   }
+
+  // Common paginated response:
+  // { data: [...], pagination: {...} }
   if (value is Map) {
-    final map = JsonMap.from(value);
-    final rows = <JsonMap>[];
-    for (final entry in map.entries) {
-      if (entry.value is Map) {
-        rows.add({'category': entry.key, ...JsonMap.from(entry.value as Map)});
-      } else if (entry.value is List) {
-        rows.addAll((entry.value as List)
-            .whereType<Map>()
-            .map((item) => JsonMap.from(item)));
-      } else {
-        rows.add(
-            {'key': entry.key, 'value': entry.value, 'category': 'General'});
-      }
+    final map = Map<String, dynamic>.from(value);
+
+    if (map["data"] is List) {
+      return (map["data"] as List)
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
     }
-    return rows;
+
+    if (map["rows"] is List) {
+      return (map["rows"] as List)
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
   }
-  return const [];
+
+  return [];
 }
 
 JsonMap _asMap(dynamic value) {
