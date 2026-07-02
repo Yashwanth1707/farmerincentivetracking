@@ -42,7 +42,15 @@ router.use(authenticate);
  */
 router.get('/', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await auditService.list(req.query as any);
+    const result = await auditService.list({
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 50,
+      userId: req.query.userId as string,
+      action: req.query.action as string,
+      entity: req.query.entity as string,
+      startDate: req.query.startDate as string,
+      endDate: req.query.endDate as string,
+    });
     res.json({ success: true, ...result });
   } catch (error) {
     next(error);

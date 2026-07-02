@@ -14,8 +14,8 @@ export class AuditService {
     startDate?: string;
     endDate?: string;
   }): Promise<PaginatedResult<any>> {
-    const page = params.page || 1;
-    const limit = params.limit || 50;
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 50;
     const skip = (page - 1) * limit;
     const where: any = {};
 

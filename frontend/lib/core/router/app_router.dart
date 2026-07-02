@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fims_frontend/shared/widgets/responsive_scaffold.dart';
 import 'package:fims_frontend/features/payments/payment_upload_screen.dart';
 import 'package:fims_frontend/features/auth/login_screen.dart';
+import 'package:fims_frontend/features/auth/forgot_password_screen.dart';
+import 'package:fims_frontend/features/auth/reset_password_screen.dart';
 import 'package:fims_frontend/features/farmers/farmers_screen.dart';
 import 'package:fims_frontend/features/admin/models/resource_config.dart';
 import 'package:fims_frontend/features/admin/screens/change_password_screen.dart';
@@ -112,14 +114,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         name: RouteNames.forgotPassword,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Forgot Password'),
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/reset-password',
         name: RouteNames.resetPassword,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Reset Password'),
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => ResponsiveScaffold(child: child),
