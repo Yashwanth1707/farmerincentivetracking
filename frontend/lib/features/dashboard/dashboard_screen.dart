@@ -219,7 +219,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisCount: quickActionColumns,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: quickActionColumns == 1 ? 3.1 : 1.7,
+                  childAspectRatio: quickActionColumns == 1
+                      ? 2.8
+                      : width > 1200
+                          ? 1.5
+                          : 1.35,
                   children: [
                     _QuickActionCard(
                       icon: Icons.people_rounded,
@@ -418,75 +422,86 @@ class _PlanningPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Wrap(
-          spacing: 14,
-          runSpacing: 14,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              width: 250,
-              child: financialYears.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (_, __) => const Text('Financial years unavailable'),
-                data: (rows) => DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Financial Year',
-                    prefixIcon: Icon(Icons.calendar_month_rounded),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth =
+            constraints.maxWidth > 280 ? 250.0 : constraints.maxWidth;
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side:
+                BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            child: Wrap(
+              spacing: 14,
+              runSpacing: 14,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: itemWidth,
+                  child: financialYears.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const Text('Financial years unavailable'),
+                    data: (rows) => DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Financial Year',
+                        prefixIcon: Icon(Icons.calendar_month_rounded),
+                      ),
+                      initialValue: _safeValue(selectedFinancialYearId, rows),
+                      items: rows
+                          .map(
+                            (fy) => DropdownMenuItem<String>(
+                              value: fy['id'].toString(),
+                              child: Text(fy['yearLabel']?.toString() ?? 'FY'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: onFinancialYearChanged,
+                    ),
                   ),
-                  initialValue: _safeValue(selectedFinancialYearId, rows),
-                  items: rows
-                      .map(
-                        (fy) => DropdownMenuItem<String>(
-                          value: fy['id'].toString(),
-                          child: Text(fy['yearLabel']?.toString() ?? 'FY'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: onFinancialYearChanged,
                 ),
-              ),
-            ),
-            SizedBox(
-              width: 250,
-              child: batches.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (_, __) => const Text('Batches unavailable'),
-                data: (rows) => DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Batch',
-                    prefixIcon: Icon(Icons.inventory_2_rounded),
+                SizedBox(
+                  width: itemWidth,
+                  child: batches.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const Text('Batches unavailable'),
+                    data: (rows) => DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Batch',
+                        prefixIcon: Icon(Icons.inventory_2_rounded),
+                      ),
+                      initialValue: _safeValue(selectedBatchId, rows),
+                      items: rows
+                          .map(
+                            (batch) => DropdownMenuItem<String>(
+                              value: batch['id'].toString(),
+                              child: Text(
+                                  batch['batchNumber']?.toString() ?? 'Batch'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: onBatchChanged,
+                    ),
                   ),
-                  initialValue: _safeValue(selectedBatchId, rows),
-                  items: rows
-                      .map(
-                        (batch) => DropdownMenuItem<String>(
-                          value: batch['id'].toString(),
-                          child:
-                              Text(batch['batchNumber']?.toString() ?? 'Batch'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: onBatchChanged,
                 ),
-              ),
+                const _HintChip(
+                  icon: Icons.touch_app_rounded,
+                  label: 'Change filters, then open reports',
+                ),
+              ],
             ),
-            const _HintChip(
-              icon: Icons.touch_app_rounded,
-              label: 'Change filters, then open reports',
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -696,11 +711,13 @@ class _MetricCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 metric.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               Text(
                 metric.subtitle,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
@@ -729,43 +746,49 @@ class _SelectionSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 300,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(icon),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.labelLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    Text(
-                      detail,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 320),
+      child: SizedBox(
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: Theme.of(context).textTheme.labelLarge),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                      ),
+                      Text(
+                        detail,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -796,7 +819,10 @@ class _QuickActionCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           child: Row(
             children: [
               CircleAvatar(
@@ -867,7 +893,10 @@ class _DashboardError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         child: Row(
           children: [
             const Icon(Icons.error_outline_rounded),
@@ -902,17 +931,21 @@ class _StatusCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Text(
-                  'System Status',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                Expanded(
+                  child: Text(
+                    'System Status',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
                 ),
-                const Spacer(),
                 IconButton(
                   tooltip: 'Refresh dashboard',
                   onPressed: onRefresh,
@@ -920,9 +953,9 @@ class _StatusCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             const _StatusRow('API is online and responding'),
-            SizedBox(height: 10),
+            SizedBox(height: 6),
             const _StatusRow('Database connection established'),
           ],
         ),
