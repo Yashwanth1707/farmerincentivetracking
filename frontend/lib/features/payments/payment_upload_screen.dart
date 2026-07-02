@@ -26,6 +26,11 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
   );
   final _schemeController = TextEditingController(text: 'Farmer Incentive');
   final _customTdsController = TextEditingController();
+  final _remitterAccountController = TextEditingController();
+  final _remitterNameController = TextEditingController();
+  final _remitterIfscController = TextEditingController();
+  final _beneficiaryLeiController = TextEditingController();
+  final _customSmsController = TextEditingController();
 
   bool isLoading = false;
   String? error;
@@ -62,8 +67,18 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
     _paymentDateController.dispose();
     _schemeController.dispose();
     _customTdsController.dispose();
+    _remitterAccountController.dispose();
+    _remitterNameController.dispose();
+    _remitterIfscController.dispose();
+    _beneficiaryLeiController.dispose();
+    _customSmsController.dispose();
     super.dispose();
   }
+
+  bool _sendSms = false;
+  List<JsonMap> _smsTemplates = [];
+  String? _selectedSmsTemplateId;
+  List<JsonMap> _smsResults = [];
 
   Future<void> _loadFinancialYears() async {
     try {
@@ -455,6 +470,8 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
           'scheme': _schemeController.text.trim(),
           'paymentDate': _paymentDateController.text.trim(),
           'tdsPercentages': tdsPercentages,
+          'smsTemplateId': _sendSms ? _selectedSmsTemplateId : null,
+          'customSms': _sendSms ? _customSmsController.text.trim() : null,
         },
       );
 
@@ -462,6 +479,7 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
         setState(() {
           isLoading = false;
           processingResult = _asMap(response.data['data']);
+          _smsResults = _extractRows(response.data['data']?['smsResults']) ;
           currentStep = 7;
           successMessage = 'Payment batch processed successfully.';
         });
@@ -539,7 +557,13 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
   Future<void> _downloadBankFile() async {
     await _downloadPostReport(
       '${ApiEndpoints.payments}/bank-file-preview',
-      {'previewResults': mappedFarmers},
+      {
+        'previewResults': mappedFarmers,
+        'remitterAccountNo': _remitterAccountController.text.trim(),
+        'remitterName': _remitterNameController.text.trim(),
+        'remitterIfsc': _remitterIfscController.text.trim(),
+        'beneficiaryLei': _beneficiaryLeiController.text.trim(),
+      },
       'bank_file.xlsx',
     );
   }
@@ -1027,14 +1051,106 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
+          Column(
             children: [
-              FilledButton.icon(
-                onPressed: isLoading ? null : _processPayments,
-                icon: const Icon(Icons.check_circle_rounded),
-                label: const Text('Process Payments'),
+              SizedBox(
+                width: 520,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Bank file remitter details'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _remitterAccountController,
+                            decoration: const InputDecoration(labelText: 'Remitter Account Number'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _remitterNameController,
+                            decoration: const InputDecoration(labelText: 'Remitter Name'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _remitterIfscController,
+                            decoration: const InputDecoration(labelText: 'Remitter IFSC'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _beneficiaryLeiController,
+                            decoration: const InputDecoration(labelText: 'Beneficiary LEI Code'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _sendSms,
+                          onChanged: (v) async {
+                            setState(() => _sendSms = v ?? false);
+                            if (_sendSms && _smsTemplates.isEmpty) {
+                              try {
+                                final resp = await _client.get(ApiEndpoints.smsTemplates);
+                                if (resp.statusCode == 200) {
+                                  setState(() => _smsTemplates = List<JsonMap>.from(resp.data['data'] ?? []));
+                                }
+                              } catch (_) {}
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Send SMS notifications to farmers'),
+                      ],
+                    ),
+                    if (_sendSms) ...[
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(labelText: 'SMS Template (optional)'),
+                        items: _smsTemplates.map((t) => DropdownMenuItem<String>(value: t['id']?.toString(), child: Text(t['name']?.toString() ?? ''))).toList(),
+                        onChanged: (v) => setState(() => _selectedSmsTemplateId = v),
+                        initialValue: _selectedSmsTemplateId,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _customSmsController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: 'Custom SMS (overrides template)'),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        FilledButton.icon(
+                          onPressed: isLoading ? null : _processPayments,
+                          icon: const Icon(Icons.check_circle_rounded),
+                          label: const Text('Process Payments'),
+                        ),
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          onPressed: mappedFarmers.isEmpty ? null : _downloadBankFile,
+                          icon: const Icon(Icons.account_balance_rounded),
+                          label: const Text('Download Bank File Preview'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1073,6 +1189,12 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen> {
                     const Text(
                       'Notifications will be sent using configured SMS/WhatsApp templates.',
                     ),
+                    if (_smsResults.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('SMS Results:', style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(height: 8),
+                      ..._smsResults.map((r) => Text('- ${r['farmerName'] ?? r['phone'] ?? ''}: ${r['status'] ?? r['error'] ?? ''}')),
+                    ],
                   ],
                 ),
               ),

@@ -74,7 +74,14 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
 router.get('/:id/payment-file', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const buffer = await paymentService.generateBatchPaymentFile(req.params.id);
+    const { remitterAccountNo, remitterName, remitterIfsc, beneficiaryLei } = req.query;
+    const buffer = await paymentService.generateBatchPaymentFile(
+      req.params.id,
+      remitterAccountNo as string | undefined,
+      remitterName as string | undefined,
+      remitterIfsc as string | undefined,
+      beneficiaryLei as string | undefined,
+    );
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=batch_${req.params.id}_payment_file.xlsx`);
     res.send(buffer);

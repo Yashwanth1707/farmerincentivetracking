@@ -9,7 +9,12 @@ export class SmsService {
    * Send SMS via Twilio (or log in dev)
    */
   private async sendViaTwilio(to: string, message: string): Promise<{ success: boolean; sid?: string; error?: string }> {
-    if (config.nodeEnv === 'development' || !config.twilio.accountSid) {
+    if (!config.twilio.accountSid) {
+      logger.warn('Twilio is not configured; cannot send SMS');
+      return { success: false, error: 'Twilio not configured' };
+    }
+
+    if (config.nodeEnv === 'development') {
       logger.info({ to, message }, '[DEV] SMS would be sent');
       return { success: true, sid: `dev-${Date.now()}` };
     }
@@ -90,7 +95,7 @@ export class SmsService {
   /**
    * Send bulk SMS to farmers in a batch
    */
-  async sendBatchSms(batchId: string, templateId: string, sentBy: string) {
+  async sendBatchSms(batchId: string, templateId: string | null, sentBy: string, customMessage?: string) {
     const batch = await prisma.paymentBatch.findUnique({
       where: { id: batchId },
       include: {
@@ -105,14 +110,22 @@ export class SmsService {
 
     if (!batch) throw new NotFoundError('Batch');
 
-    const template = await prisma.smsTemplate.findUnique({ where: { id: templateId } });
-    if (!template) throw new NotFoundError('SMS template');
+    let templateBody: string | null = null;
+    if (customMessage) {
+      templateBody = customMessage;
+    } else if (templateId) {
+      const template = await prisma.smsTemplate.findUnique({ where: { id: templateId } });
+      if (!template) throw new NotFoundError('SMS template');
+      templateBody = template.body;
+    } else {
+      throw new ValidationError({ templateId: ['templateId or customMessage is required to send batch SMS'] });
+    }
 
     const results = [];
     for (const detail of batch.batchDetails) {
       if (!detail.farmer.phone) continue;
 
-      const message = this.renderTemplate(template.body, {
+      const message = this.renderTemplate(templateBody as string, {
         FarmerName: detail.farmer.name,
         FarmerID: detail.farmer.farmerId,
         Amount: Number(detail.payment.netAmount).toFixed(2),
@@ -128,7 +141,7 @@ export class SmsService {
           sentById: sentBy,
           batchId,
           farmerId: detail.farmer.id,
-          templateId,
+          templateId: customMessage ? undefined : templateId || undefined,
           recipient: detail.farmer.phone,
           message,
           status: result.success ? 'SENT' : 'FAILED',

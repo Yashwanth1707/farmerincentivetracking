@@ -111,7 +111,7 @@ class AppStrings {
 }
 
 class SvgAssets {
-  static const String logo = 'assets/icons/logo.svg';
+  static const String logo = 'assets/icons/farmer.svg';
   static const String farmer = 'assets/icons/farmer.svg';
   static const String payment = 'assets/icons/payment.svg';
   static const String report = 'assets/icons/report.svg';

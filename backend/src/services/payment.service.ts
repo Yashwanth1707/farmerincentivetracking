@@ -448,7 +448,7 @@ export class PaymentService {
     });
   }
 
-  async generateBatchPaymentFile(batchId: string) {
+  async generateBatchPaymentFile(batchId: string, remitterAccountNo?: string, remitterName?: string, remitterIfsc?: string, beneficiaryLei?: string) {
     const batch = await prisma.paymentBatch.findUnique({
       where: { id: batchId },
       include: {
@@ -464,20 +464,21 @@ export class PaymentService {
     if (!batch) throw new NotFoundError('Batch');
 
     const paymentSettings = await this.getPaymentSettings();
-    const remitterAccountNo = paymentSettings.payment_remitter_account_no || '';
-    const remitterName = paymentSettings.payment_remitter_name || 'Eco Agripreneurs Pvt Ltd';
-    const remitterIfsc = paymentSettings.payment_remitter_ifsc || '';
-    const beneficiaryLeiCode = paymentSettings.payment_beneficiary_lei_code || '';
+    const remitterAccount = remitterAccountNo ?? paymentSettings.payment_remitter_account_no ?? '';
+    const remitter = remitterName ?? paymentSettings.payment_remitter_name ?? 'Eco Agripreneurs Pvt Ltd';
+    const remitterIfscCode = remitterIfsc ?? paymentSettings.payment_remitter_ifsc ?? '';
+    const beneficiaryLeiCode = beneficiaryLei ?? paymentSettings.payment_beneficiary_lei_code ?? '';
 
     const rows = batch.batchDetails.map((detail, index) => ({
-      Transaction_Ref_No: this.buildTransactionRef(batch, index + 1),
-      Remitter_Account_No: remitterAccountNo,
-      Remitter_Name: remitterName,
-      IFSC_Code: remitterIfsc,
+      Transaction_Ref_No: '', // leave blank for bank to fill after payment
+      Remitter_Account_No: remitterAccount,
+      Remitter_Name: remitter,
+      IFSC_Code: remitterIfscCode,
       Amount: Number(detail.payment.netAmount).toFixed(2),
       Bank_Account_Number: detail.farmer.accountNumber || '',
       Beneficiary_Name: detail.farmer.accountHolderName || detail.farmer.name,
-      Beneficiary_LEI_Code: beneficiaryLeiCode || '',
+      Area: detail.farmer.areaInAcres ? Number(detail.farmer.areaInAcres).toFixed(2) : (detail.farmer.areaInHectares ? Number(detail.farmer.areaInHectares).toFixed(2) : ''),
+      'Beneficiary_LEI Code': beneficiaryLeiCode || '',
     }));
 
     const workbook = XLSX.utils.book_new();
@@ -490,7 +491,8 @@ export class PaymentService {
         'Amount',
         'Bank_Account_Number',
         'Beneficiary_Name',
-        'Beneficiary_LEI_Code',
+        'Area',
+        'Beneficiary_LEI Code',
       ]
     });
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Payments');
@@ -755,20 +757,35 @@ export class PaymentService {
     return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
   }
 
-  generateBankFilePreview(previewResults: any[]) {
-    const rows = previewResults.map((row, index) => ({
-      Transaction_Ref_No: row.transactionNumber || `PREVIEW-${String(index + 1).padStart(5, '0')}`,
-      Beneficiary_Name: row.accountHolderName || row.farmerName || '',
-      Bank_Account_Number: row.accountNumber || '',
-      IFSC_Code: row.ifscCode || '',
-      Bank_Name: row.bankName || '',
-      Branch: row.branchName || '',
+  generateBankFilePreview(previewResults: any[], remitterAccountNo?: string, remitterName?: string, remitterIfsc?: string, beneficiaryLei?: string) {
+    const rows = previewResults.map((row) => ({
+      Transaction_Ref_No: '',
+      Remitter_Account_No: remitterAccountNo || '',
+      Remitter_Name: remitterName || '',
+      IFSC_Code: remitterIfsc || '',
       Amount: Number(row.netAmount || 0).toFixed(2),
+      Bank_Account_Number: row.accountNumber || '',
+      Beneficiary_Name: row.accountHolderName || row.farmerName || '',
+      Area: row.areaInAcres ? Number(row.areaInAcres).toFixed(2) : (row.areaInHectares ? Number(row.areaInHectares).toFixed(2) : ''),
+      'Beneficiary_LEI Code': beneficiaryLei || '',
       Farmer_ID: row.farmerId || '',
     }));
 
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const worksheet = XLSX.utils.json_to_sheet(rows, {
+      header: [
+        'Transaction_Ref_No',
+        'Remitter_Account_No',
+        'Remitter_Name',
+        'IFSC_Code',
+        'Amount',
+        'Bank_Account_Number',
+        'Beneficiary_Name',
+        'Area',
+        'Beneficiary_LEI Code',
+        'Farmer_ID',
+      ],
+    });
     XLSX.utils.book_append_sheet(workbook, worksheet, 'BankFile');
     return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
   }

@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { paymentService } from '../services/payment.service';
+import { smsService } from '../services/sms.service';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { tdsDecisionSchema } from '../validators/batch.validator';
@@ -93,7 +94,8 @@ router.post('/preview-report', authorize('ADMIN', 'OPERATOR'), async (req: Reque
 
 router.post('/bank-file-preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const buffer = paymentService.generateBankFilePreview(req.body.previewResults || []);
+    const { previewResults, remitterAccountNo, remitterName, remitterIfsc, beneficiaryLei } = req.body;
+    const buffer = paymentService.generateBankFilePreview(previewResults || [], remitterAccountNo, remitterName, remitterIfsc, beneficiaryLei);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=bank_file.xlsx');
     res.send(buffer);
@@ -263,7 +265,7 @@ router.post('/preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res
  */
 router.post('/confirm', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { previewResults, financialYearId, batchName, tdsPercentages, paymentDate } = req.body;
+    const { previewResults, financialYearId, batchName, tdsPercentages, paymentDate, smsTemplateId, customSms } = req.body;
     const result = await paymentService.processPayments(
       previewResults,
       financialYearId,
@@ -272,10 +274,23 @@ router.post('/confirm', authorize('ADMIN', 'OPERATOR'), async (req: Request, res
       tdsPercentages,
       paymentDate ? new Date(paymentDate) : undefined,
     );
+
+    // Optionally send SMS notifications to farmers in the created batch
+    let smsResults: any[] | null = null;
+    if (smsTemplateId || customSms) {
+      try {
+        smsResults = await smsService.sendBatchSms(result.batch.id, smsTemplateId || null, req.user!.id, customSms);
+      } catch (smsError) {
+        // Log and continue — do not fail the payment processing if SMS fails
+        console.error('SMS sending failed for batch', result.batch.id, smsError);
+        smsResults = [{ error: 'SMS sending failed', details: String(smsError) }];
+      }
+    }
+
     res.json({
       success: true,
       message: `${result.totalFarmers} payments saved successfully`,
-      data: result,
+      data: { ...result, smsResults },
     });
   } catch (error) {
     next(error);
