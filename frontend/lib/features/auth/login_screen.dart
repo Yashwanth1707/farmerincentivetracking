@@ -132,6 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   late final TextEditingController identifierController;
   late final TextEditingController passwordController;
   bool rememberMe = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -285,11 +286,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
                             labelText: 'Password',
                             hintText: 'Enter your password',
-                            prefixIcon: Icon(Icons.lock),
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: authState.isLoading
+                                  ? null
+                                  : () => setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      }),
+                            ),
                           ),
                           enabled: !authState.isLoading,
                         ),
