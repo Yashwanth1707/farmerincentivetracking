@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../shared/widgets/responsive_scaffold.dart';
-import '../../features/payments/payment_upload_screen.dart';
-import '../../features/auth/login_screen.dart';
-import '../../features/admin/resource_screens.dart';
-import '../../features/farmers/farmers_screen.dart';
+import 'package:fims_frontend/shared/widgets/responsive_scaffold.dart';
+import 'package:fims_frontend/features/payments/payment_upload_screen.dart';
+import 'package:fims_frontend/features/auth/login_screen.dart';
+import 'package:fims_frontend/features/farmers/farmers_screen.dart';
+import 'package:fims_frontend/features/admin/models/resource_config.dart';
+import 'package:fims_frontend/features/admin/screens/change_password_screen.dart';
+import 'package:fims_frontend/features/admin/screens/reports_screen.dart';
+import 'package:fims_frontend/features/admin/screens/resource_list_screen.dart';
+import 'package:fims_frontend/features/admin/screens/settings_screen.dart';
+import 'package:fims_frontend/features/dashboard/dashboard_screen.dart';
 
 // Global key for scaffold messaging
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -79,7 +84,7 @@ class _PlaceholderScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Text(
-              '🚧 Under Construction',
+              'Under Construction',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,
@@ -122,7 +127,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/dashboard',
             name: RouteNames.dashboard,
-            builder: (context, state) => const ApiDashboardScreen(),
+            builder: (context, state) => const DashboardScreen(),
           ),
           GoRoute(
             path: '/farmers',

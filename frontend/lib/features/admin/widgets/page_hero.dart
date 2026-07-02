@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
+import 'package:fims_frontend/core/theme/app_theme.dart';
 
 class PageHero extends StatelessWidget {
   final String title;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/formatters.dart';
-import '../../../shared/widgets/app_data_table.dart';
+import 'package:fims_frontend/core/utils/formatters.dart';
+import 'package:fims_frontend/shared/widgets/app_data_table.dart';
 
 import '../models/column_spec.dart';
 import '../utils/json_helpers.dart';

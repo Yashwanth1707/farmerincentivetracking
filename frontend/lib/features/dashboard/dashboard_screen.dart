@@ -8,7 +8,6 @@ class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final authNotifier = ref.read(authStateProvider.notifier);
@@ -186,7 +185,6 @@ class _QuickActionCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _QuickActionCard({
-    super.key,
     required this.icon,
     required this.title,
     required this.onTap,

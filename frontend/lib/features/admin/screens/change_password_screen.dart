@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/network/dio_client.dart';
-import '../../../core/router/app_router.dart';
+import 'package:fims_frontend/core/network/api_endpoints.dart';
+import 'package:fims_frontend/core/network/dio_client.dart';
+import 'package:fims_frontend/core/router/app_router.dart';
 
-import '../../../shared/widgets/app_snackbar.dart';
+import 'package:fims_frontend/shared/widgets/app_snackbar.dart';
 
 import '../widgets/page_hero.dart';
 import '../widgets/section_card.dart';

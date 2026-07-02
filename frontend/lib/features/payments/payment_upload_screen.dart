@@ -1,8 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/network/api_endpoints.dart';
-import '../../core/network/dio_client.dart';
+import 'package:fims_frontend/core/network/api_endpoints.dart';
+import 'package:fims_frontend/core/network/dio_client.dart';
 
 final paymentUploadControllerProvider =
     StateNotifierProvider<PaymentUploadController, PaymentUploadState>((ref) {
@@ -329,3 +329,4 @@ class _SummaryChip extends StatelessWidget {
     );
   }
 }
+

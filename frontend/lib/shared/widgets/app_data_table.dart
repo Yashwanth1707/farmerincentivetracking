@@ -302,3 +302,4 @@ class _StatusConfig {
   final Color backgroundColor;
   const _StatusConfig({required this.backgroundColor});
 }
+

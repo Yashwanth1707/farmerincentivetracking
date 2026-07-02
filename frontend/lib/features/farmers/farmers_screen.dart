@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/network/api_endpoints.dart';
-import '../../core/network/dio_client.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/utils/formatters.dart';
-import '../../shared/widgets/app_data_table.dart';
-import '../../shared/widgets/app_snackbar.dart';
+import 'package:fims_frontend/core/network/api_endpoints.dart';
+import 'package:fims_frontend/core/network/dio_client.dart';
+import 'package:fims_frontend/core/theme/app_theme.dart';
+import 'package:fims_frontend/core/utils/formatters.dart';
+import 'package:fims_frontend/shared/widgets/app_data_table.dart';
+import 'package:fims_frontend/shared/widgets/app_snackbar.dart';
 
 final farmersControllerProvider =
     StateNotifierProvider.autoDispose<FarmersController, FarmersState>((ref) {
@@ -666,3 +666,4 @@ class _MessagePanel extends StatelessWidget {
     );
   }
 }
+

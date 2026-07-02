@@ -1,130 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../../shared/widgets/stat_card.dart';
-
+import '../models/resource_config.dart';
 import '../providers/resource_provider.dart';
-import '../utils/json_helpers.dart';
+import 'package:fims_frontend/core/router/app_router.dart';
+import 'package:go_router/go_router.dart';
+import '../widgets/error_state.dart';
 import '../widgets/page_hero.dart';
 import '../widgets/section_card.dart';
 import '../widgets/simple_table.dart';
-import '../models/column_spec.dart';
-import '../widgets/error_state.dart';
 
-class ApiDashboardScreen extends ConsumerWidget {
-  const ApiDashboardScreen({super.key});
+class ResourceListScreen extends ConsumerWidget {
+  final ResourceConfig config;
+
+  const ResourceListScreen({
+    super.key,
+    required this.config,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final data = ref.watch(dashboardDataProvider);
+    final provider = resourceProvider(config);
+    final result = ref.watch(provider);
 
-    return data.when(
+    return result.when(
       loading: () => const Center(
         child: CircularProgressIndicator(),
       ),
-
       error: (error, _) => ErrorState(
-        title: 'Dashboard unavailable',
+        title: '${config.title} unavailable',
         message: error.toString(),
-        onRetry: () => ref.invalidate(dashboardDataProvider),
+        onRetry: () => ref.invalidate(provider),
       ),
-
-      data: (stats) {
-        final farmers = asMap(stats['farmers']);
-        final payments = asMap(stats['payments']);
-        final batches = asMap(stats['batches']);
-        final recentBatches = asList(stats['recentBatches']);
-
+      data: (rows) {
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PageHero(
-                title: 'Dashboard',
-                subtitle:
-                    'Live operating view across farmers, payments, batches, and TDS.',
-                icon: Icons.dashboard_rounded,
+              PageHero(
+                title: config.title,
+                subtitle: config.subtitle,
+                icon: config.icon,
+                trailing: config.primaryAction == null &&
+                        config != ResourceConfigs.payments
+                    ? null
+                    : FilledButton.icon(
+                        onPressed: () {
+                          if (config.primaryAction != null) {
+                            config.primaryAction!(context, ref);
+                            return;
+                          }
+
+                          if (config == ResourceConfigs.payments) {
+                            context.goNamed(RouteNames.paymentUpload);
+                          }
+                        },
+                        icon: Icon(
+                          config.primaryActionIcon,
+                        ),
+                        label: Text(
+                          config.primaryActionLabel,
+                        ),
+                      ),
               ),
-
               const SizedBox(height: 16),
-
-              StatCardGrid(
-                cards: [
-                  StatCard(
-                    label: 'Active Farmers',
-                    value: Formatters.number(farmers['active']),
-                    icon: Icons.people_rounded,
-                    subtitle:
-                        '${Formatters.number(farmers['total'])} total profiles',
-                  ),
-
-                  StatCard(
-                    label: 'Net Payments',
-                    value: Formatters.compactCurrency(
-                      payments['totalNet'],
-                    ),
-                    icon: Icons.payments_rounded,
-                    iconColor: AppColors.accentDeep,
-                    subtitle:
-                        '${Formatters.number(payments['total'])} payment records',
-                  ),
-
-                  StatCard(
-                    label: 'Approved Batches',
-                    value: Formatters.number(
-                      batches['approved'],
-                    ),
-                    icon: Icons.verified_rounded,
-                    iconColor: AppColors.success,
-                    subtitle:
-                        '${Formatters.number(batches['pending'])} pending',
-                  ),
-
-                  StatCard(
-                    label: 'TDS Decisions',
-                    value: Formatters.number(
-                      stats['pendingTds'],
-                    ),
-                    icon: Icons.percent_rounded,
-                    iconColor: AppColors.warning,
-                    subtitle: 'Pending review',
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
               SectionCard(
-                title: 'Recent Batches',
-                icon: Icons.inventory_2_rounded,
+                title: config.sectionTitle,
+                icon: config.icon,
                 child: SimpleTable(
-                  rows: recentBatches,
-                  columns: const [
-                    ColumnSpec(
-                      'batchNumber',
-                      'Batch',
-                    ),
-                    ColumnSpec(
-                      'financialYear.yearLabel',
-                      'FY',
-                    ),
-                    ColumnSpec(
-                      'status',
-                      'Status',
-                      status: true,
-                    ),
-                    ColumnSpec(
-                      'totalFarmers',
-                      'Farmers',
-                    ),
-                    ColumnSpec(
-                      'totalNetAmount',
-                      'Net',
-                      currency: true,
-                    ),
-                  ],
+                  rows: rows,
+                  columns: config.columns,
+                  rowActions: config.rowActions,
+                  emptyTitle: config.emptyTitle,
                 ),
               ),
             ],

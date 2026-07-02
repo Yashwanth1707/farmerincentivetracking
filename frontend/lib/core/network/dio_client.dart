@@ -287,3 +287,4 @@ class _ErrorInterceptor extends Interceptor {
 final dioClientProvider = Provider<DioClient>((ref) {
   return DioClient(ref: ref);
 });
+

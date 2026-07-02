@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_constants.dart';
-import '../../core/network/api_endpoints.dart';
-import '../../core/network/dio_client.dart';
-import '../../core/router/app_router.dart';
+import 'package:fims_frontend/core/constants/app_constants.dart';
+import 'package:fims_frontend/core/network/api_endpoints.dart';
+import 'package:fims_frontend/core/network/dio_client.dart';
+import 'package:fims_frontend/core/router/app_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/auth/login_screen.dart';
+import 'package:fims_frontend/features/auth/login_screen.dart';
 
 /// Navigation helper functions used by all scaffold variants
 int _getSelectedIndex(BuildContext context) {
@@ -533,3 +533,4 @@ List<NavigationRailDestination> _navDestinations(BuildContext context) {
     ),
   ];
 }
+

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/router/app_router.dart';
-
+import 'package:fims_frontend/core/network/api_endpoints.dart';
 import '../services/admin_actions.dart';
-
 import 'column_spec.dart';
 import 'row_action.dart';
+import '../dialogs/user_dialog.dart';
+import '../dialogs/financial_year_dialog.dart';
+import '../dialogs/sms_template_dialog.dart';
 
 typedef JsonMap = Map<String, dynamic>;
 
@@ -105,9 +103,7 @@ class ResourceConfigs {
     endpoint: ApiEndpoints.batches,
     primaryActionLabel: 'Upload Excel',
     primaryActionIcon: Icons.upload_file_rounded,
-    primaryAction: (context, ref) {
-      context.goNamed(RouteNames.paymentUpload);
-    },
+    primaryAction: null,
     columns: const [
       ColumnSpec('batchNumber', 'Batch'),
       ColumnSpec(
@@ -131,9 +127,9 @@ class ResourceConfigs {
         currency: true,
       ),
     ],
-    
   );
-    /// BATCHES
+
+  /// BATCHES
   static final ResourceConfig batches = ResourceConfig(
     title: 'Batches',
     subtitle: 'Review, approve, reject, and export payment batches.',
@@ -199,8 +195,7 @@ class ResourceConfigs {
   /// TDS
   static final ResourceConfig tds = ResourceConfig(
     title: 'TDS Tracking',
-    subtitle:
-        'Monitor batches and payments that may require TDS decisions.',
+    subtitle: 'Monitor batches and payments that may require TDS decisions.',
     sectionTitle: 'TDS Sensitive Batches',
     icon: Icons.percent_rounded,
     endpoint: ApiEndpoints.batches,
@@ -310,7 +305,4 @@ class ResourceConfigs {
       ColumnSpec('category', 'Category'),
     ],
   );
-
 }
-
-

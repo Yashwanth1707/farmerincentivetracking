@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/column_spec.dart';
 import '../models/row_action.dart';
-import '../utils/json_helpers.dart';
 import 'cell_value.dart';
 import 'empty_state.dart';
 
@@ -35,10 +34,7 @@ class SimpleTable extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: DataTable(
         headingRowColor: WidgetStatePropertyAll(
-          Theme.of(context)
-              .colorScheme
-              .primary
-              .withValues(alpha: 0.08),
+          Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         ),
         columns: [
           for (final column in columns)

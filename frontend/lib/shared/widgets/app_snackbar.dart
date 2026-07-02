@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/router/app_router.dart';
+import 'package:fims_frontend/core/router/app_router.dart';
 
 /// Helper class to show snackbar messages
 class AppSnackbar {
@@ -139,3 +139,4 @@ class AppSnackbar {
 }
 
 enum SnackbarType { success, error, warning, info }
+

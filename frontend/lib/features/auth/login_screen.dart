@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/network/api_endpoints.dart';
-import '../../core/network/dio_client.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:fims_frontend/core/network/api_endpoints.dart';
+import 'package:fims_frontend/core/network/dio_client.dart';
+import 'package:fims_frontend/core/theme/app_theme.dart';
 import 'package:dio/dio.dart';
 
 // Auth state providers
@@ -64,9 +64,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
       );
 
-      print("Status: ${response.statusCode}");
-      print("Response:");
-      print(response.data);
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Response: ${response.data}');
 
       state = state.copyWith(
         isLoading: false,
@@ -74,16 +73,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: response.data['data'],
       );
     } on DioException catch (e) {
-      print("Status: ${e.response?.statusCode}");
-      print("Response:");
-      print(e.response?.data);
+      debugPrint('Status: ${e.response?.statusCode}');
+      debugPrint('Response: ${e.response?.data}');
 
       state = state.copyWith(
         isLoading: false,
         error: e.response?.data?['message'] ?? e.message ?? 'Login failed',
       );
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
 
       state = state.copyWith(
         isLoading: false,

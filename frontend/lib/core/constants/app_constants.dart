@@ -135,3 +135,4 @@ class RoleConstants {
   static const String operator = 'operator';
   static const String viewer = 'viewer';
 }
+

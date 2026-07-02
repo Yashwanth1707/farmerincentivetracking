@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/network/dio_client.dart';
-import '../../../shared/widgets/app_snackbar.dart';
+import 'package:fims_frontend/core/network/api_endpoints.dart';
+import 'package:fims_frontend/core/network/dio_client.dart';
+import 'package:fims_frontend/shared/widgets/app_snackbar.dart';
 
 import '../models/resource_config.dart';
 import '../providers/resource_provider.dart';
