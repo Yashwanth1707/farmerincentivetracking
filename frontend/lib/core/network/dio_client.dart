@@ -139,11 +139,6 @@ class DioClient {
       data: formData,
       cancelToken: cancelToken,
       onSendProgress: onSendProgress,
-      options: Options(
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      ),
     );
   }
 
