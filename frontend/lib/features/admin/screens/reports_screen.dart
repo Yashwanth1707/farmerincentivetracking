@@ -149,9 +149,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
                 financialYears.when(
-                  loading: () => const SizedBox(
+                  loading: () => SizedBox(
                     width: 260,
-                    child: CircularProgressIndicator(),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Financial Year',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 10),
+                          Text('Loading...', style: Theme.of(context).textTheme.bodyMedium),
+                        ],
+                      ),
+                    ),
                   ),
                   error: (_, __) => const SizedBox(),
                   data: (rows) {
@@ -180,9 +196,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   },
                 ),
                 batches.when(
-                  loading: () => const SizedBox(
+                  loading: () => SizedBox(
                     width: 260,
-                    child: CircularProgressIndicator(),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Batch',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 10),
+                          Text('Loading...', style: Theme.of(context).textTheme.bodyMedium),
+                        ],
+                      ),
+                    ),
                   ),
                   error: (_, __) => const SizedBox(),
                   data: (rows) {
@@ -287,7 +319,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (_loading) const LinearProgressIndicator(),
+          if (_loading)
+            SectionCard(
+              title: 'Generating report',
+              icon: Icons.hourglass_top_rounded,
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Preparing your report view and export files...',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (_error != null)
             ErrorState(
               title: 'Report failed',
