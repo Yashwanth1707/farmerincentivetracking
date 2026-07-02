@@ -68,9 +68,6 @@ export class PaymentService {
       });
     }
 
-    const existingFarmerErrors = await this.validateExistingFarmerAndPhone(Array.from(fileFarmerIds), []);
-    errors.push(...existingFarmerErrors);
-
     const summary = {
       totalRecords: rows.length - 1,
       successfullyValidated: validRows.length,
@@ -87,6 +84,8 @@ export class PaymentService {
    */
   async previewPayments(validRows: any[], financialYearId: string) {
     const results = [];
+    const mappedFarmers = [];
+    const missingFarmers = [];
     const notFoundFarmers: string[] = [];
 
     const financialYear = await prisma.financialYear.findUnique({ where: { id: financialYearId } });
@@ -107,11 +106,13 @@ export class PaymentService {
 
       if (!farmer) {
         notFoundFarmers.push(row.farmerId);
-        results.push({
+        const missing = {
           ...row,
           status: 'FARMER_NOT_FOUND',
           message: 'Farmer ID not found in master data',
-        });
+        };
+        missingFarmers.push(missing);
+        results.push(missing);
         continue;
       }
 
@@ -135,7 +136,7 @@ export class PaymentService {
         ? Math.round(Number(row.incentiveAmount) * (tdsPercentage / 100) * 100) / 100
         : 0;
 
-      results.push({
+      const mapped = {
         farmerId: row.farmerId,
         farmerName: farmer.name,
         village: farmer.village,
@@ -158,10 +159,24 @@ export class PaymentService {
         remarks: row.remarks,
         farmerInternalId: farmer.id,
         status: tdsApplicable ? 'TDS_REQUIRED' : 'READY',
-      });
+        mappingStatus: 'MAPPED',
+        source: 'EXISTING',
+      };
+      mappedFarmers.push(mapped);
+      results.push(mapped);
     }
 
-    return { results, notFoundFarmers };
+    const summary = {
+      totalUploaded: validRows.length,
+      mappedFarmers: mappedFarmers.length,
+      missingFarmers: missingFarmers.length,
+      tdsApplicable: mappedFarmers.filter((row) => row.tdsApplicable).length,
+      grossAmount: mappedFarmers.reduce((sum, row) => sum + Number(row.grossAmount || 0), 0),
+      totalTds: mappedFarmers.reduce((sum, row) => sum + Number(row.tdsAmount || 0), 0),
+      netPayable: mappedFarmers.reduce((sum, row) => sum + Number(row.netAmount || 0), 0),
+    };
+
+    return { results, mappedFarmers, missingFarmers, notFoundFarmers, summary };
   }
 
   async processPayments(
@@ -737,6 +752,65 @@ export class PaymentService {
       ],
     });
     XLSX.utils.book_append_sheet(workbook, worksheet, 'PaymentPreview');
+    return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  generateBankFilePreview(previewResults: any[]) {
+    const rows = previewResults.map((row, index) => ({
+      Transaction_Ref_No: row.transactionNumber || `PREVIEW-${String(index + 1).padStart(5, '0')}`,
+      Beneficiary_Name: row.accountHolderName || row.farmerName || '',
+      Bank_Account_Number: row.accountNumber || '',
+      IFSC_Code: row.ifscCode || '',
+      Bank_Name: row.bankName || '',
+      Branch: row.branchName || '',
+      Amount: Number(row.netAmount || 0).toFixed(2),
+      Farmer_ID: row.farmerId || '',
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'BankFile');
+    return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  generateTdsReport(previewResults: any[]) {
+    const rows = previewResults
+      .filter((row) => row.tdsApplicable)
+      .map((row) => ({
+        Farmer_ID: row.farmerId,
+        Farmer_Name: row.farmerName,
+        Previous_FY_Incentive: Number(row.previousYearIncentive || 0).toFixed(2),
+        Current_FY_Total: Number(row.totalYearlyIncentive || 0).toFixed(2),
+        Gross_Amount: Number(row.grossAmount || 0).toFixed(2),
+        TDS_Percentage: Number(row.tdsPercentage || 0).toFixed(2),
+        TDS_Amount: Number(row.tdsAmount || 0).toFixed(2),
+        Net_Amount: Number(row.netAmount || 0).toFixed(2),
+      }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'TDSReport');
+    return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  generateAuditReport(payload: any) {
+    const previewResults = Array.isArray(payload.previewResults) ? payload.previewResults : [];
+    const processingResult = payload.processingResult || {};
+    const rows = [
+      { Metric: 'Processed At', Value: new Date().toISOString() },
+      { Metric: 'Batch Number', Value: processingResult.batch?.batchNumber || payload.batchName || '' },
+      { Metric: 'Financial Year ID', Value: payload.financialYearId || '' },
+      { Metric: 'Total Rows', Value: previewResults.length },
+      { Metric: 'Mapped Farmers', Value: previewResults.filter((row: any) => row.status !== 'FARMER_NOT_FOUND').length },
+      { Metric: 'TDS Farmers', Value: previewResults.filter((row: any) => row.tdsApplicable).length },
+      { Metric: 'Gross Amount', Value: previewResults.reduce((sum: number, row: any) => sum + Number(row.grossAmount || 0), 0).toFixed(2) },
+      { Metric: 'TDS Amount', Value: previewResults.reduce((sum: number, row: any) => sum + Number(row.tdsAmount || 0), 0).toFixed(2) },
+      { Metric: 'Net Payable', Value: previewResults.reduce((sum: number, row: any) => sum + Number(row.netAmount || 0), 0).toFixed(2) },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'AuditReport');
     return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
   }
 

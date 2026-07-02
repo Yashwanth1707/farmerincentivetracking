@@ -91,6 +91,39 @@ router.post('/preview-report', authorize('ADMIN', 'OPERATOR'), async (req: Reque
   }
 });
 
+router.post('/bank-file-preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const buffer = paymentService.generateBankFilePreview(req.body.previewResults || []);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=bank_file.xlsx');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/tds-report-preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const buffer = paymentService.generateTdsReport(req.body.previewResults || []);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=tds_report.xlsx');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/audit-report-preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const buffer = paymentService.generateAuditReport(req.body);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=payment_audit_report.xlsx');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/import-errors', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { errors } = req.body;
@@ -150,9 +183,29 @@ router.post('/upload', authorize('ADMIN', 'OPERATOR'), upload.single('file'), as
     }
     const parsed = await paymentService.parseExcel(req.file.path);
     const preview = await paymentService.previewPayments(parsed.validRows, financialYearId);
+    const duplicateRows = parsed.errors.filter((error) =>
+      error.message.toLowerCase().includes('duplicate')
+    );
+    const invalidRows = parsed.errors.filter((error) =>
+      !error.message.toLowerCase().includes('duplicate')
+    );
+    const summary = {
+      ...parsed.summary,
+      ...(preview.summary || {}),
+      duplicateRows: duplicateRows.length,
+      invalidRows: invalidRows.length,
+    };
     res.json({
       success: true,
-      data: { parsed: { ...parsed, filePath: undefined }, preview },
+      data: {
+        mappedFarmers: preview.mappedFarmers,
+        missingFarmers: preview.missingFarmers,
+        duplicateRows,
+        invalidRows,
+        summary,
+        parsed: { ...parsed, filePath: undefined },
+        preview,
+      },
     });
   } catch (error) {
     next(error);
