@@ -191,6 +191,26 @@ export class UserService {
       }
     }
 
+    return prisma.user.update({ where: { id }, data: { isActive: false } });
+  }
+
+  async remove(id: string) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundError('User');
+
+    if (user.role === 'ADMIN') {
+      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+      if (adminCount <= 1) {
+        throw new ValidationError({ role: ['Cannot remove the last admin user'] });
+      }
+    }
+
+    await prisma.auditLog.deleteMany({ where: { userId: id } });
+    await prisma.session.deleteMany({ where: { sess: { path: ['userId'], equals: id } } as any });
+    await prisma.passwordReset.deleteMany({ where: { userId: id } });
+    await prisma.smsLog.deleteMany({ where: { sentById: id } });
+    await prisma.sentSmsRecord.deleteMany({ where: { sentById: id } });
+
     return prisma.user.delete({ where: { id } });
   }
 }

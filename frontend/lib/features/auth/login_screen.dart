@@ -29,12 +29,13 @@ class AuthState {
     String? error,
     bool? isAuthenticated,
     Map<String, dynamic>? user,
+    bool clearUser = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      user: user ?? this.user,
+      user: clearUser ? null : user ?? this.user,
     );
   }
 }
@@ -70,7 +71,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
-        user: response.data['data'],
+        user: _extractUser(response.data),
       );
     } on DioException catch (e) {
       debugPrint('Status: ${e.response?.statusCode}');
@@ -93,10 +94,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     try {
       await _client.post(ApiEndpoints.logout);
-      state = state.copyWith(isAuthenticated: false, user: null);
+      state = state.copyWith(isAuthenticated: false, clearUser: true);
     } catch (e) {
       // Logout error handling
     }
+  }
+
+  Map<String, dynamic> _extractUser(dynamic responseData) {
+    if (responseData is! Map) return {};
+
+    final data = responseData['data'];
+    if (data is Map) {
+      final user = data['user'];
+      if (user is Map) {
+        return Map<String, dynamic>.from(user);
+      }
+      return Map<String, dynamic>.from(data);
+    }
+
+    final user = responseData['user'];
+    if (user is Map) {
+      return Map<String, dynamic>.from(user);
+    }
+
+    return {};
   }
 }
 

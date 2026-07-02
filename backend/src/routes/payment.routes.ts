@@ -62,9 +62,29 @@ router.get('/sample-excel', async (_req: Request, res: Response, next: NextFunct
 
 router.get('/sample-output', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const buffer = paymentService.generateSampleOutputExcel();
+    const buffer = await paymentService.generateSampleOutputExcel();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=sample_payment_output.xlsx');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/batch-options', authorize('ADMIN', 'OPERATOR'), async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await paymentService.getBatchOptions();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/preview-report', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const buffer = await paymentService.generatePreviewReport(req.body.previewResults || []);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=payment_preview.xlsx');
     res.send(buffer);
   } catch (error) {
     next(error);
@@ -190,12 +210,19 @@ router.post('/preview', authorize('ADMIN', 'OPERATOR'), async (req: Request, res
  */
 router.post('/confirm', authorize('ADMIN', 'OPERATOR'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { previewResults, financialYearId } = req.body;
-    const saved = await paymentService.confirmPayments(previewResults, financialYearId, req.user!.id);
+    const { previewResults, financialYearId, batchName, tdsPercentages, paymentDate } = req.body;
+    const result = await paymentService.processPayments(
+      previewResults,
+      financialYearId,
+      req.user!.id,
+      batchName,
+      tdsPercentages,
+      paymentDate ? new Date(paymentDate) : undefined,
+    );
     res.json({
       success: true,
-      message: `${saved.length} payments saved successfully`,
-      data: { count: saved.length },
+      message: `${result.totalFarmers} payments saved successfully`,
+      data: result,
     });
   } catch (error) {
     next(error);

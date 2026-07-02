@@ -8,12 +8,16 @@ import '../utils/json_helpers.dart';
 typedef JsonMap = Map<String, dynamic>;
 
 /// Dashboard
-final dashboardDataProvider =
-    FutureProvider.autoDispose<JsonMap>((ref) async {
-  final response = await DioClient().get(ApiEndpoints.dashboardStats);
+final dashboardDataProvider = FutureProvider.autoDispose
+    .family<JsonMap, String?>((ref, financialYearId) async {
+  final response = await DioClient().get(
+    ApiEndpoints.dashboardStats,
+    queryParameters: {
+      if (financialYearId != null) 'financialYearId': financialYearId,
+    },
+  );
 
-  if (response.statusCode == 200 &&
-      response.data['success'] == true) {
+  if (response.statusCode == 200 && response.data['success'] == true) {
     return asMap(response.data['data']);
   }
 
@@ -37,8 +41,7 @@ final financialYearsProvider =
 });
 
 /// Batches
-final batchesProvider =
-    FutureProvider.autoDispose<List<JsonMap>>((ref) async {
+final batchesProvider = FutureProvider.autoDispose<List<JsonMap>>((ref) async {
   final response = await DioClient().get(
     ApiEndpoints.batches,
     queryParameters: {
@@ -72,8 +75,8 @@ final farmerSearchProvider =
 );
 
 /// Generic Resource Provider
-final resourceProvider = FutureProvider.autoDispose
-    .family<List<JsonMap>, ResourceConfig>(
+final resourceProvider =
+    FutureProvider.autoDispose.family<List<JsonMap>, ResourceConfig>(
   (ref, config) async {
     final response = await DioClient().get(
       config.endpoint,
@@ -83,11 +86,9 @@ final resourceProvider = FutureProvider.autoDispose
       },
     );
 
-    if (response.statusCode != 200 ||
-        response.data['success'] != true) {
+    if (response.statusCode != 200 || response.data['success'] != true) {
       throw Exception(
-        response.data['message'] ??
-            'Unable to load ${config.title}',
+        response.data['message'] ?? 'Unable to load ${config.title}',
       );
     }
 

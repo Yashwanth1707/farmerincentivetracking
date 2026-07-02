@@ -200,6 +200,19 @@ export class FarmerService {
     });
   }
 
+  async remove(id: string) {
+    const farmer = await prisma.farmer.findUnique({ where: { id } });
+    if (!farmer) {
+      throw new NotFoundError('Farmer');
+    }
+
+    await prisma.batchDetail.deleteMany({ where: { farmerId: id } });
+    await prisma.payment.deleteMany({ where: { farmerId: id } });
+    await prisma.tdsRecord.deleteMany({ where: { farmerId: id } });
+
+    return prisma.farmer.delete({ where: { id } });
+  }
+
   /**
    * Get unique villages list
    */

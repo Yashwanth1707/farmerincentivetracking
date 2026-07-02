@@ -169,6 +169,12 @@ router.put('/:id', validate(updateUserSchema), async (req: Request, res: Respons
  */
 router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { hardDelete } = req.query;
+    if (hardDelete === 'true') {
+      await userService.remove(req.params.id);
+      res.json({ success: true, message: 'User removed successfully' });
+      return;
+    }
     await userService.delete(req.params.id);
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {

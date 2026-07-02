@@ -115,14 +115,22 @@ class DioClient {
 
   Future<Response> uploadFile(
     String path, {
-    required String filePath,
+    String? filePath,
+    Uint8List? bytes,
+    String? fileName,
     String fileFieldName = 'file',
     Map<String, dynamic>? extraFields,
     CancelToken? cancelToken,
     void Function(int, int)? onSendProgress,
   }) async {
+    final multipartFile = bytes != null
+        ? MultipartFile.fromBytes(bytes, filename: fileName)
+        : filePath != null
+            ? await MultipartFile.fromFile(filePath, filename: fileName)
+            : throw ArgumentError('Either filePath or bytes must be provided');
+
     final formData = FormData.fromMap({
-      fileFieldName: await MultipartFile.fromFile(filePath),
+      fileFieldName: multipartFile,
       if (extraFields != null) ...extraFields,
     });
 

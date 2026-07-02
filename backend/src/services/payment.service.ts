@@ -20,127 +20,31 @@ export class PaymentService {
     }
 
     const headers = rows[0].map((value) => String(value).trim());
-    const expectedHeaders = [
-      'Column',
-      'Field Center',
-      'Implementation Partner',
-      'State',
-      'Area',
-      'Belongs To',
-      'Field Officer',
-      'Farmer ID',
-      'Alternate Farmer ID',
-      'Farmer Name',
-      'Father/Husband Name',
-      'Last Name',
-      'Financial Year',
-      'Season',
-      'District',
-      'Mandal / Taluk',
-      'Village',
-      'Registered Mobile Number',
-      'Area in Acres',
-      'Area in Hectares',
-      'Incentive Amount',
-      'Bank Linked Mobile Number',
-      'Account Holder Name',
-      'Account Number',
-      'Account Type',
-      'Bank Name',
-      'IFSC Code',
-      'Branch Name',
-      'Branch Address',
-      'Remarks',
-      'Upload Date',
-    ];
+    const normalizedHeaders = headers.map((header) => header.toLowerCase());
+    const isSimpleTemplate = normalizedHeaders[0] === 'farmer id'
+      && normalizedHeaders[1] === 'incentive amount'
+      && (normalizedHeaders[2] === 'remarks' || normalizedHeaders[2] === 'remarks (optional)');
 
-    if (headers.length !== expectedHeaders.length || !expectedHeaders.every((value, index) => headers[index] === value)) {
-      throw new ValidationError({ file: ['Excel headers must match the required template exactly'] });
+    if (!isSimpleTemplate) {
+      throw new ValidationError({ file: ['Invalid Excel format. Please use the provided sample template.'] });
     }
 
-    const fieldMap: Record<string, string> = {
-      Column: 'column',
-      'Field Center': 'fieldCenter',
-      'Implementation Partner': 'implementationPartner',
-      State: 'state',
-      Area: 'area',
-      'Belongs To': 'belongsTo',
-      'Field Officer': 'fieldOfficer',
-      'Farmer ID': 'farmerId',
-      'Alternate Farmer ID': 'alternateFarmerId',
-      'Farmer Name': 'farmerName',
-      'Father/Husband Name': 'fatherName',
-      'Last Name': 'lastName',
-      'Financial Year': 'financialYear',
-      Season: 'season',
-      District: 'district',
-      'Mandal / Taluk': 'mandalTaluk',
-      Village: 'village',
-      'Registered Mobile Number': 'registeredMobileNumber',
-      'Area in Acres': 'areaInAcres',
-      'Area in Hectares': 'areaInHectares',
-      'Incentive Amount': 'incentiveAmount',
-      'Bank Linked Mobile Number': 'bankLinkedMobileNumber',
-      'Account Holder Name': 'accountHolderName',
-      'Account Number': 'accountNumber',
-      'Account Type': 'accountType',
-      'Bank Name': 'bankName',
-      'IFSC Code': 'ifscCode',
-      'Branch Name': 'branchName',
-      'Branch Address': 'branchAddress',
-      Remarks: 'remarks',
-      'Upload Date': 'uploadDate',
-    };
-
     const fileFarmerIds = new Set<string>();
-    const fileMobileNumbers = new Set<string>();
     const duplicateFarmerIds = new Set<string>();
-    const duplicateMobileNumbers = new Set<string>();
     const errors: { row: number; field: string; message: string }[] = [];
     const validRows: any[] = [];
 
     for (let i = 1; i < rows.length; i += 1) {
       const rowNum = i + 1;
       const row = rows[i];
-      const parsedRow: Record<string, any> = {};
-
-      for (let j = 0; j < expectedHeaders.length; j += 1) {
-        const header = expectedHeaders[j];
-        parsedRow[fieldMap[header]] = String(row[j] ?? '').trim();
-      }
-
-      const farmerId = parsedRow.farmerId;
-      const farmerName = parsedRow.farmerName;
-      const village = parsedRow.village;
-      const financialYear = parsedRow.financialYear;
-      const ifscCode = parsedRow.ifscCode;
-      const accountNumber = parsedRow.accountNumber;
-      const accountHolderName = parsedRow.accountHolderName;
-      const incentiveAmount = Number(parsedRow.incentiveAmount);
-      const registeredMobileNumber = parsedRow.registeredMobileNumber;
+      const farmerId = String(row[0] ?? '').trim();
+      const incentiveAmount = Number(String(row[1] ?? '').trim());
+      const remarks = String(row[2] ?? '').trim();
 
       if (!farmerId) {
         errors.push({ row: rowNum, field: 'Farmer ID', message: 'Farmer ID is required' });
       }
-      if (!farmerName) {
-        errors.push({ row: rowNum, field: 'Farmer Name', message: 'Farmer Name is required' });
-      }
-      if (!village) {
-        errors.push({ row: rowNum, field: 'Village', message: 'Village is required' });
-      }
-      if (!financialYear) {
-        errors.push({ row: rowNum, field: 'Financial Year', message: 'Financial Year is required' });
-      }
-      if (!ifscCode) {
-        errors.push({ row: rowNum, field: 'IFSC Code', message: 'IFSC Code is required' });
-      }
-      if (!accountNumber) {
-        errors.push({ row: rowNum, field: 'Account Number', message: 'Account Number is required' });
-      }
-      if (!accountHolderName) {
-        errors.push({ row: rowNum, field: 'Account Holder Name', message: 'Account Holder Name is required' });
-      }
-      if (Number.isNaN(incentiveAmount) || incentiveAmount <= 0) {
+      if (!Number.isFinite(incentiveAmount) || incentiveAmount <= 0) {
         errors.push({ row: rowNum, field: 'Incentive Amount', message: 'Incentive Amount must be greater than zero' });
       }
 
@@ -153,37 +57,26 @@ export class PaymentService {
         }
       }
 
-      if (registeredMobileNumber) {
-        if (fileMobileNumbers.has(registeredMobileNumber)) {
-          duplicateMobileNumbers.add(registeredMobileNumber);
-          errors.push({ row: rowNum, field: 'Registered Mobile Number', message: 'Duplicate mobile number in uploaded file' });
-        } else {
-          fileMobileNumbers.add(registeredMobileNumber);
-        }
-      }
-
       if (errors.some((error) => error.row === rowNum)) {
         continue;
       }
 
       validRows.push({
-        ...parsedRow,
+        farmerId,
         incentiveAmount,
-        areaInAcres: parsedRow.areaInAcres ? Number(parsedRow.areaInAcres) : undefined,
-        areaInHectares: parsedRow.areaInHectares ? Number(parsedRow.areaInHectares) : undefined,
-        uploadDate: parsedRow.uploadDate ? new Date(parsedRow.uploadDate) : undefined,
+        remarks,
       });
     }
 
-    const existingFarmerErrors = await this.validateExistingFarmerAndPhone(Array.from(fileFarmerIds), Array.from(fileMobileNumbers));
+    const existingFarmerErrors = await this.validateExistingFarmerAndPhone(Array.from(fileFarmerIds), []);
     errors.push(...existingFarmerErrors);
 
     const summary = {
       totalRecords: rows.length - 1,
       successfullyValidated: validRows.length,
-      failedRecords: errors.reduce((acc, error) => acc.add(error.row), new Set<number>()).size,
+      failedRecords: new Set(errors.map((error) => error.row)).size,
       duplicateFarmerIds: duplicateFarmerIds.size,
-      duplicateMobileNumbers: duplicateMobileNumbers.size,
+      duplicateMobileNumbers: 0,
     };
 
     return { validRows, errors, summary };
@@ -196,6 +89,17 @@ export class PaymentService {
     const results = [];
     const notFoundFarmers: string[] = [];
 
+    const financialYear = await prisma.financialYear.findUnique({ where: { id: financialYearId } });
+    const previousFinancialYear = financialYear
+      ? await prisma.financialYear.findFirst({
+          where: { startDate: { lt: financialYear.startDate } },
+          orderBy: { startDate: 'desc' },
+        })
+      : null;
+
+    const tdsThreshold = await this.getTdsThreshold();
+    const tdsPercentage = await this.getTdsPercentage();
+
     for (const row of validRows) {
       const farmer = await prisma.farmer.findUnique({
         where: { farmerId: row.farmerId },
@@ -203,49 +107,33 @@ export class PaymentService {
 
       if (!farmer) {
         notFoundFarmers.push(row.farmerId);
-        results.push({ ...row, status: 'FARMER_NOT_FOUND' });
+        results.push({
+          ...row,
+          status: 'FARMER_NOT_FOUND',
+          message: 'Farmer ID not found in master data',
+        });
         continue;
       }
 
-      const cumulativeResult = await prisma.payment.aggregate({
-        where: {
-          farmerId: farmer.id,
-          financialYearId,
-        },
-        _sum: { grossAmount: true },
-      });
+      const previousYearResult = previousFinancialYear
+        ? await prisma.payment.aggregate({
+            where: {
+              farmerId: farmer.id,
+              financialYearId: previousFinancialYear.id,
+            },
+            _sum: { grossAmount: true },
+          })
+        : null;
 
-      const cumulativeAmount = cumulativeResult._sum.grossAmount
-        ? Number(cumulativeResult._sum.grossAmount)
+      const previousYearIncentive = previousYearResult?._sum.grossAmount
+        ? Number(previousYearResult._sum.grossAmount)
         : 0;
 
-      const newCumulative = cumulativeAmount + row.incentiveAmount;
-      const tdsThreshold = await this.getTdsThreshold();
-      const tdsPercentage = await this.getTdsPercentage();
-
-      let tdsApplicable = false;
-      let tdsAmount = 0;
-      let needsDecision = false;
-
-      if (newCumulative >= tdsThreshold) {
-        const existingTdsRecord = await prisma.tdsRecord.findFirst({
-          where: {
-            farmerId: farmer.id,
-            financialYearId,
-          },
-          orderBy: { createdAt: 'desc' },
-        });
-
-        if (existingTdsRecord?.decision === 'YES') {
-          tdsApplicable = true;
-          tdsAmount = Math.round(row.incentiveAmount * (tdsPercentage / 100) * 100) / 100;
-        } else if (existingTdsRecord?.decision === 'NO') {
-          tdsApplicable = false;
-          tdsAmount = 0;
-        } else {
-          needsDecision = true;
-        }
-      }
+      const totalYearlyIncentive = previousYearIncentive + Number(row.incentiveAmount);
+      const tdsApplicable = totalYearlyIncentive >= tdsThreshold;
+      const tdsAmount = tdsApplicable
+        ? Math.round(Number(row.incentiveAmount) * (tdsPercentage / 100) * 100) / 100
+        : 0;
 
       results.push({
         farmerId: row.farmerId,
@@ -253,25 +141,119 @@ export class PaymentService {
         village: farmer.village,
         district: farmer.district,
         bankName: farmer.bankName,
+        branchName: farmer.branchName,
         ifscCode: farmer.ifscCode,
         accountNumber: farmer.accountNumber,
         accountHolderName: farmer.accountHolderName ?? farmer.name,
-        grossAmount: row.incentiveAmount,
-        cumulativeAmount,
-        newCumulative,
+        areaInAcres: farmer.areaInAcres ? Number(farmer.areaInAcres) : null,
+        areaInHectares: farmer.areaInHectares ? Number(farmer.areaInHectares) : null,
+        grossAmount: Number(row.incentiveAmount),
+        previousYearIncentive,
+        totalYearlyIncentive,
         tdsApplicable,
+        suggestedTdsPercentage: tdsApplicable ? tdsPercentage : 0,
         tdsPercentage: tdsApplicable ? tdsPercentage : 0,
         tdsAmount,
-        netAmount: row.incentiveAmount - tdsAmount,
-        needsDecision,
-        invoiceNumber: row.invoiceNumber,
-        notes: row.notes,
+        netAmount: Number(row.incentiveAmount) - tdsAmount,
+        remarks: row.remarks,
         farmerInternalId: farmer.id,
-        status: 'VALID',
+        status: tdsApplicable ? 'TDS_REQUIRED' : 'READY',
       });
     }
 
     return { results, notFoundFarmers };
+  }
+
+  async processPayments(
+    previewResults: any[],
+    financialYearId: string,
+    userId: string,
+    batchName?: string,
+    tdsPercentages?: Record<string, number>,
+    paymentDate?: Date,
+  ) {
+    const validRows = previewResults.filter((row) => row.status !== 'FARMER_NOT_FOUND' && row.status !== 'INVALID');
+
+    if (validRows.length === 0) {
+      throw new ValidationError({ previewResults: ['No valid payments to process'] });
+    }
+
+    const financialYear = await prisma.financialYear.findUnique({ where: { id: financialYearId } });
+    if (!financialYear) throw new NotFoundError('Financial year');
+
+    const batchLabel = batchName?.trim() || `Kharif Batch ${new Date().getFullYear()}`;
+    const batchNumber = `${batchLabel.replace(/[^a-zA-Z0-9]/g, '-').toUpperCase()}-${String(Date.now()).slice(-4)}`;
+
+    const createdPayments = [] as any[];
+
+    for (const row of validRows) {
+      const selectedTdsPercentage = tdsPercentages?.[row.farmerId] ?? row.tdsPercentage ?? 0;
+      const tdsAmount = row.tdsApplicable
+        ? Math.round(Number(row.grossAmount) * (selectedTdsPercentage / 100) * 100) / 100
+        : 0;
+      const netAmount = Number(row.grossAmount) - tdsAmount;
+
+      const payment = await prisma.payment.create({
+        data: {
+          farmerId: row.farmerInternalId,
+          financialYearId,
+          invoiceNumber: `TXN-${Date.now()}-${createdPayments.length + 1}`,
+          grossAmount: new Decimal(row.grossAmount),
+          tdsAmount: new Decimal(tdsAmount),
+          netAmount: new Decimal(netAmount),
+          tdsApplicable: Boolean(row.tdsApplicable || selectedTdsPercentage > 0),
+          tdsPercentage: selectedTdsPercentage > 0 ? new Decimal(selectedTdsPercentage) : null,
+          paymentDate: paymentDate || new Date(),
+          notes: row.remarks || undefined,
+        },
+      });
+
+      if (row.tdsApplicable || selectedTdsPercentage > 0) {
+        await prisma.tdsRecord.create({
+          data: {
+            farmerId: row.farmerInternalId,
+            financialYearId,
+            cumulativeAmount: new Decimal(row.totalYearlyIncentive ?? row.grossAmount),
+            decision: 'YES',
+            decidedBy: userId,
+            decidedAt: new Date(),
+            notes: `Auto-applied TDS at ${selectedTdsPercentage}%`,
+          },
+        });
+      }
+
+      createdPayments.push(payment);
+    }
+
+    const batch = await prisma.paymentBatch.create({
+      data: {
+        batchNumber,
+        financialYearId,
+        totalFarmers: createdPayments.length,
+        totalGrossAmount: new Decimal(createdPayments.reduce((sum, payment) => sum + Number(payment.grossAmount), 0)),
+        totalTdsAmount: new Decimal(createdPayments.reduce((sum, payment) => sum + Number(payment.tdsAmount), 0)),
+        totalNetAmount: new Decimal(createdPayments.reduce((sum, payment) => sum + Number(payment.netAmount), 0)),
+        status: 'PAID',
+        processedBy: userId,
+        paymentDate: paymentDate || new Date(),
+        notes: batchLabel,
+        batchDetails: {
+          create: createdPayments.map((payment) => ({
+            paymentId: payment.id,
+            farmerId: payment.farmerId,
+          })),
+        },
+      },
+    });
+
+    return {
+      batch,
+      payments: createdPayments,
+      totalFarmers: createdPayments.length,
+      totalGrossAmount: createdPayments.reduce((sum, payment) => sum + Number(payment.grossAmount), 0),
+      totalTdsAmount: createdPayments.reduce((sum, payment) => sum + Number(payment.tdsAmount), 0),
+      totalNetAmount: createdPayments.reduce((sum, payment) => sum + Number(payment.netAmount), 0),
+    };
   }
 
   /**
@@ -504,28 +486,40 @@ export class PaymentService {
     const sampleRows = [];
     for (let i = 1; i <= 10; i += 1) {
       sampleRows.push({
-        Transaction_Ref_No: `20240701${String(i).padStart(4, '0')}`,
-        Remitter_Account_No: '123456789012',
-        Remitter_Name: 'Eco Agripreneurs Pvt Ltd',
-        IFSC_Code: 'SBIN0012345',
-        Amount: (Math.round((5000 + Math.random() * 25000) * 100) / 100).toFixed(2),
-        Bank_Account_Number: `ACC${String(100000 + i)}`,
-        Beneficiary_Name: `Farmer ${i}`,
-        Beneficiary_LEI_Code: '',
+        'Farmer ID': `FARM${String(i).padStart(4, '0')}`,
+        'Farmer Name': `Farmer ${i}`,
+        Village: `Village ${i}`,
+        'Bank Name': 'State Bank of India',
+        Branch: `Branch ${i}`,
+        IFSC: 'SBIN0001234',
+        'Account Number': `ACC${String(100000 + i)}`,
+        'Gross Incentive': (Math.round((5000 + i * 1000) * 100) / 100).toFixed(2),
+        'TDS %': '0%',
+        'TDS Amount': '0.00',
+        'Net Amount': (Math.round((5000 + i * 1000) * 100) / 100).toFixed(2),
+        Batch: 'Kharif Batch 1',
+        'Payment Date': new Date().toISOString().slice(0, 10),
+        Status: 'Ready',
       });
     }
 
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(sampleRows, {
       header: [
-        'Transaction_Ref_No',
-        'Remitter_Account_No',
-        'Remitter_Name',
-        'IFSC_Code',
-        'Amount',
-        'Bank_Account_Number',
-        'Beneficiary_Name',
-        'Beneficiary_LEI_Code',
+        'Farmer ID',
+        'Farmer Name',
+        'Village',
+        'Bank Name',
+        'Branch',
+        'IFSC',
+        'Account Number',
+        'Gross Incentive',
+        'TDS %',
+        'TDS Amount',
+        'Net Amount',
+        'Batch',
+        'Payment Date',
+        'Status',
       ],
     });
     XLSX.utils.book_append_sheet(workbook, worksheet, 'PaymentOutput');
@@ -533,78 +527,22 @@ export class PaymentService {
   }
 
   generateSampleExcel(): Buffer {
-    const sampleData = [];
-    for (let i = 1; i <= 10; i += 1) {
-      sampleData.push({
-        Column: `Sample ${i}`,
-        'Field Center': `Center ${i}`,
-        'Implementation Partner': 'Akshaya Ginning',
-        State: 'Telangana',
-        Area: `Area ${i}`,
-        'Belongs To': 'Group A',
-        'Field Officer': `Officer ${i}`,
-        'Farmer ID': `FARM${String(i).padStart(4, '0')}`,
-        'Alternate Farmer ID': `ALT${String(i).padStart(4, '0')}`,
-        'Farmer Name': `Farmer ${i}`,
-        'Father/Husband Name': `Father ${i}`,
-        'Last Name': `Surname ${i}`,
-        'Financial Year': '2024-2025',
-        Season: 'Kharif',
-        District: 'Warangal',
-        'Mandal / Taluk': `Mandal ${i}`,
-        Village: `Village ${i}`,
-        'Registered Mobile Number': `9876543${String(100 + i).padStart(3, '0')}`,
-        'Area in Acres': (Math.random() * 5 + 1).toFixed(2),
-        'Area in Hectares': (Math.random() * 2 + 0.5).toFixed(2),
-        'Incentive Amount': (Math.round((5000 + i * 1000) * 100) / 100).toFixed(2),
-        'Bank Linked Mobile Number': `9876500${String(100 + i).padStart(3, '0')}`,
-        'Account Holder Name': `Farmer ${i}`,
-        'Account Number': `ACC${String(1000000 + i)}`,
-        'Account Type': 'Savings',
-        'Bank Name': 'State Bank of India',
-        'IFSC Code': 'SBIN0001234',
-        'Branch Name': `Branch ${i}`,
-        'Branch Address': `Branch Address ${i}`,
+    const sampleData = [
+      {
+        'Farmer ID': 'FARM0001',
+        'Incentive Amount': '5000',
         Remarks: 'Sample upload row',
-        'Upload Date': new Date().toISOString().slice(0, 10),
-      });
-    }
+      },
+      {
+        'Farmer ID': 'FARM0002',
+        'Incentive Amount': '7500',
+        Remarks: 'Sample upload row',
+      },
+    ];
 
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(sampleData, {
-      header: [
-        'Column',
-        'Field Center',
-        'Implementation Partner',
-        'State',
-        'Area',
-        'Belongs To',
-        'Field Officer',
-        'Farmer ID',
-        'Alternate Farmer ID',
-        'Farmer Name',
-        'Father/Husband Name',
-        'Last Name',
-        'Financial Year',
-        'Season',
-        'District',
-        'Mandal / Taluk',
-        'Village',
-        'Registered Mobile Number',
-        'Area in Acres',
-        'Area in Hectares',
-        'Incentive Amount',
-        'Bank Linked Mobile Number',
-        'Account Holder Name',
-        'Account Number',
-        'Account Type',
-        'Bank Name',
-        'IFSC Code',
-        'Branch Name',
-        'Branch Address',
-        'Remarks',
-        'Upload Date',
-      ],
+      header: ['Farmer ID', 'Incentive Amount', 'Remarks'],
     });
     XLSX.utils.book_append_sheet(workbook, worksheet, 'SampleInput');
     return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
@@ -759,6 +697,63 @@ export class PaymentService {
 
     if (!batch) throw new NotFoundError('Batch');
     return batch;
+  }
+
+  async generatePreviewReport(previewResults: any[]) {
+    const rows = previewResults.map((row) => ({
+      'Farmer ID': row.farmerId,
+      'Farmer Name': row.farmerName,
+      Village: row.village,
+      'Bank Name': row.bankName,
+      Branch: row.branchName || '',
+      IFSC: row.ifscCode || '',
+      'Account Number': row.accountNumber || '',
+      'Gross Incentive': Number(row.grossAmount).toFixed(2),
+      'TDS %': `${Number(row.tdsPercentage || 0).toFixed(2)}%`,
+      'TDS Amount': Number(row.tdsAmount || 0).toFixed(2),
+      'Net Amount': Number(row.netAmount || 0).toFixed(2),
+      Batch: row.batchName || 'Pending',
+      'Payment Date': row.paymentDate || '',
+      Status: row.tdsApplicable ? 'TDS Required' : 'Ready',
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows, {
+      header: [
+        'Farmer ID',
+        'Farmer Name',
+        'Village',
+        'Bank Name',
+        'Branch',
+        'IFSC',
+        'Account Number',
+        'Gross Incentive',
+        'TDS %',
+        'TDS Amount',
+        'Net Amount',
+        'Batch',
+        'Payment Date',
+        'Status',
+      ],
+    });
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'PaymentPreview');
+    return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  async getBatchOptions() {
+    const existingBatches = await prisma.paymentBatch.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: { id: true, batchNumber: true, status: true },
+    });
+
+    return [
+      { value: 'Kharif Batch 1', label: 'Kharif Batch 1' },
+      { value: 'Kharif Batch 2', label: 'Kharif Batch 2' },
+      { value: 'Cotton Procurement Batch', label: 'Cotton Procurement Batch' },
+      { value: 'Special Incentive Batch', label: 'Special Incentive Batch' },
+      ...existingBatches.map((batch) => ({ value: batch.batchNumber, label: batch.batchNumber })),
+    ];
   }
 
   /**

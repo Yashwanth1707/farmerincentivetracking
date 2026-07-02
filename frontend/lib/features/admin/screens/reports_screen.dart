@@ -1,16 +1,21 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fims_frontend/core/network/api_endpoints.dart';
 import 'package:fims_frontend/core/network/dio_client.dart';
 
 import '../providers/resource_provider.dart';
-import '../utils/json_helpers.dart';
+import '../utils/report_view_utils.dart';
 
 import '../widgets/page_hero.dart';
 import '../widgets/section_card.dart';
 import '../widgets/error_state.dart';
-import '../widgets/json_preview.dart';
 
 typedef JsonMap = Map<String, dynamic>;
 
@@ -24,6 +29,7 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   String? _selectedBatchId;
   String? _selectedFinancialYearId;
+  bool _querySelectionsApplied = false;
 
   final _farmerSearchController = TextEditingController();
 
@@ -33,7 +39,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   bool _loading = false;
 
-  JsonMap? _result;
+  ReportViewModel? _viewModel;
 
   String? _error;
 
@@ -41,6 +47,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   void dispose() {
     _farmerSearchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_querySelectionsApplied) return;
+
+    final query = GoRouterState.of(context).uri.queryParameters;
+    _selectedBatchId = query['batchId'];
+    _selectedFinancialYearId = query['financialYearId'];
+    _querySelectionsApplied = true;
   }
 
   @override
@@ -276,12 +294,86 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               message: _error!,
               compact: true,
             )
-          else if (_result != null)
+          else if (_viewModel != null)
             SectionCard(
               title: 'Report Result',
               icon: Icons.data_object_rounded,
-              child: JsonPreview(
-                value: _result!,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _viewModel!.title,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      FilledButton.icon(
+                        onPressed: _downloadExcel,
+                        icon: const Icon(Icons.file_download_rounded),
+                        label: const Text('Export Excel'),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: _downloadPdf,
+                        icon: const Icon(Icons.picture_as_pdf_rounded),
+                        label: const Text('Export PDF'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _viewModel!.metrics.map((metric) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(metric.label, style: Theme.of(context).textTheme.labelMedium),
+                            const SizedBox(height: 4),
+                            Text(metric.value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._viewModel!.sections.map((section) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(section.title, style: Theme.of(context).textTheme.titleMedium),
+                            const SizedBox(height: 8),
+                            if (section.rows.isEmpty)
+                              Text('No rows available', style: Theme.of(context).textTheme.bodyMedium)
+                            else
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  columns: section.rows.first.keys
+                                      .map((key) => DataColumn(label: Text(_formatHeader(key))))
+                                      .toList(),
+                                  rows: section.rows.map((row) {
+                                    return DataRow(
+                                      cells: row.entries.map((entry) {
+                                        return DataCell(Text(_formatValue(entry.value)));
+                                      }).toList(),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )),
+                ],
               ),
             ),
         ],
@@ -300,15 +392,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     setState(() {
       _loading = true;
       _error = null;
-      _result = null;
+      _viewModel = null;
     });
 
     try {
       final response = await _client.get(endpoint);
 
       if (response.statusCode == 200 && response.data['success'] == true) {
+        final payload = response.data['data'];
         setState(() {
-          _result = asMap(response.data['data']);
+          _viewModel = buildReportViewModel(payload);
         });
       } else {
         setState(() {
@@ -327,5 +420,78 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         });
       }
     }
+  }
+
+  Future<void> _downloadExcel() async {
+    if (_viewModel == null) return;
+    try {
+      final response = await _client.post(
+        ApiEndpoints.reportExportExcel,
+        data: {
+          'data': _viewModel!.exportRows,
+          'sheetName': _viewModel!.title,
+        },
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final bytes = response.data is Uint8List
+            ? response.data as Uint8List
+            : response.data is List<int>
+                ? Uint8List.fromList(response.data as List<int>)
+                : Uint8List.fromList(utf8.encode(response.data.toString()));
+        await FileSaver.instance.saveFile(name: '${_viewModel!.title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_')}.xlsx', bytes: bytes);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error.toString());
+      }
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    if (_viewModel == null) return;
+    try {
+      final headers = _viewModel!.sections.isNotEmpty && _viewModel!.sections.first.rows.isNotEmpty
+          ? _viewModel!.sections.first.rows.first.keys.toList()
+          : const <String>[];
+      final rows = _viewModel!.sections.isNotEmpty
+          ? _viewModel!.sections.first.rows.map((row) => row.values.toList()).toList()
+          : const <List<dynamic>>[];
+      final response = await _client.post(
+        ApiEndpoints.reportExportPdf,
+        data: {
+          'title': _viewModel!.title,
+          'headers': headers,
+          'rows': rows,
+        },
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final bytes = response.data is Uint8List
+            ? response.data as Uint8List
+            : response.data is List<int>
+                ? Uint8List.fromList(response.data as List<int>)
+                : Uint8List.fromList(utf8.encode(response.data.toString()));
+        await FileSaver.instance.saveFile(name: '${_viewModel!.title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_')}.pdf', bytes: bytes);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error.toString());
+      }
+    }
+  }
+
+  String _formatHeader(String key) {
+    return key.replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (match) => '${match.group(1)} ${match.group(2)}').splitMapJoin(
+      RegExp(r'[_\-]'),
+      onMatch: (match) => ' ',
+    );
+  }
+
+  String _formatValue(dynamic value) {
+    if (value == null) return '-';
+    if (value is DateTime) return value.toLocal().toString();
+    if (value is List || value is Map) return value.toString();
+    return value.toString();
   }
 }

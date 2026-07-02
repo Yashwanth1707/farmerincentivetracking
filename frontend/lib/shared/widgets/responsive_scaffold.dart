@@ -400,18 +400,35 @@ class _MoreTile extends StatelessWidget {
 
 /// Top bar with breadcrumbs and user info
 
+final _topBarUserProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final response = await DioClient().get(ApiEndpoints.me);
+
+  if (response.statusCode == 200 && response.data['success'] == true) {
+    final data = response.data['data'];
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+  }
+
+  return {};
+});
 
 class _TopBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final sessionUser = ref.watch(_topBarUserProvider).valueOrNull ?? {};
+    final authUser = _flattenUser(authState.user);
+    final user = authUser.isNotEmpty ? authUser : sessionUser;
 
-    final userName =
-        authState.user?['fullName'] ??
-        authState.user?['username'] ??
-        'User';
+    final userName = _firstText(
+      user,
+      ['fullName', 'full_name', 'name', 'username', 'email'],
+      'User',
+    );
 
-    final role = authState.user?['role'] ?? '';
+    final role = _firstText(user, ['role', 'userRole', 'type'], '');
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -423,7 +440,6 @@ class _TopBar extends ConsumerWidget {
         child: Row(
           children: [
             Expanded(child: _Breadcrumb()),
-
             CircleAvatar(
               radius: 18,
               backgroundColor: colorScheme.primaryContainer,
@@ -432,9 +448,7 @@ class _TopBar extends ConsumerWidget {
                 color: colorScheme.primary,
               ),
             ),
-
             const SizedBox(width: 8),
-
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,6 +469,40 @@ class _TopBar extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Map<String, dynamic> _flattenUser(Map<String, dynamic>? source) {
+    if (source == null) return {};
+
+    final nestedUser = source['user'];
+    if (nestedUser is Map) {
+      return Map<String, dynamic>.from(nestedUser);
+    }
+
+    final nestedData = source['data'];
+    if (nestedData is Map) {
+      final dataUser = nestedData['user'];
+      if (dataUser is Map) {
+        return Map<String, dynamic>.from(dataUser);
+      }
+      return Map<String, dynamic>.from(nestedData);
+    }
+
+    return source;
+  }
+
+  String _firstText(
+    Map<String, dynamic> source,
+    List<String> keys,
+    String fallback,
+  ) {
+    for (final key in keys) {
+      final value = source[key];
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString();
+      }
+    }
+    return fallback;
   }
 }
 
@@ -533,4 +581,3 @@ List<NavigationRailDestination> _navDestinations(BuildContext context) {
     ),
   ];
 }
-
